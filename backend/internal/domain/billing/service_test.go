@@ -131,6 +131,65 @@ func (r *mockRepo) UpdateOrderStatus(_ context.Context, id int64, status string)
 	return errors.New("order not found")
 }
 
+func (r *mockRepo) AtomicCharge(_ context.Context, userID, generationID int64, amount float64, useFreeQuota bool) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, t := range r.transactions {
+		if t.GenerationID == generationID {
+			return ErrGenerationAlreadyCharged
+		}
+	}
+	u, ok := r.users[userID]
+	if !ok {
+		return errors.New("user not found")
+	}
+	balanceBefore := u.Balance
+	transAmount := amount
+	if useFreeQuota {
+		if u.FreeQuota <= 0 {
+			return errors.New("insufficient free quota")
+		}
+		u.FreeQuota--
+		balanceBefore = 0
+		transAmount = 0
+	} else {
+		if u.Balance < amount {
+			return errors.New("insufficient balance")
+		}
+		u.Balance -= amount
+	}
+	r.transactions = append(r.transactions, &Transaction{
+		ID:            int64(len(r.transactions) + 1),
+		UserID:        userID,
+		GenerationID:  generationID,
+		Type:          "generation_charge",
+		Amount:        transAmount,
+		BalanceBefore: balanceBefore,
+		BalanceAfter:  balanceBefore - transAmount,
+	})
+	return nil
+}
+
+func (r *mockRepo) AtomicRecharge(_ context.Context, userID, orderID int64, amount float64) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, o := range r.orders {
+		if o.ID == orderID {
+			if o.Status == "paid" {
+				return nil
+			}
+			o.Status = "paid"
+			u, ok := r.users[userID]
+			if !ok {
+				return errors.New("user not found")
+			}
+			u.Balance += amount
+			return nil
+		}
+	}
+	return errors.New("order not found")
+}
+
 func TestChargeGenerationIdempotent(t *testing.T) {
 	repo := newMockRepo()
 	_ = repo.CreateUser(context.Background(), 1, 10.00)
@@ -178,5 +237,77 @@ func TestChargeGenerationUsesFreeQuota(t *testing.T) {
 	}
 	if trans.Amount != 0 {
 		t.Fatalf("expected transaction amount=0 for free quota, got %.2f", trans.Amount)
+	}
+}
+
+func TestChargeGenerationDeductsBalance(t *testing.T) {
+	repo := newMockRepo()
+	_ = repo.CreateUser(context.Background(), 1, 10.00)
+	repo.users[1].FreeQuota = 0
+
+	svc := NewService(repo)
+	ctx := context.Background()
+
+	if err := svc.ChargeGeneration(ctx, 1, 300); err != nil {
+		t.Fatalf("charge failed: %v", err)
+	}
+
+	user, err := repo.GetUser(ctx, 1)
+	if err != nil {
+		t.Fatalf("get user failed: %v", err)
+	}
+	if user.Balance != 0.00 {
+		t.Fatalf("expected balance=0.00, got %.2f", user.Balance)
+	}
+
+	trans, err := repo.GetTransactionByGeneration(ctx, 300)
+	if err != nil {
+		t.Fatalf("get transaction failed: %v", err)
+	}
+	if trans == nil {
+		t.Fatal("expected transaction to exist")
+	}
+	if trans.Amount != 10.00 {
+		t.Fatalf("expected transaction amount=10.00, got %.2f", trans.Amount)
+	}
+}
+
+func TestHandlePaymentCallbackIdempotent(t *testing.T) {
+	repo := newMockRepo()
+	_ = repo.CreateUser(context.Background(), 1, 0)
+	repo.orders = append(repo.orders, &Order{
+		ID:        1,
+		UserID:    1,
+		OrderNo:   "ORD001",
+		Amount:    50.00,
+		Status:    "pending",
+		WxOrderNo: "wx-123",
+	})
+
+	svc := NewService(repo)
+	ctx := context.Background()
+
+	if err := svc.HandlePaymentCallback(ctx, "wx-123"); err != nil {
+		t.Fatalf("first callback failed: %v", err)
+	}
+
+	user, err := repo.GetUser(ctx, 1)
+	if err != nil {
+		t.Fatalf("get user failed: %v", err)
+	}
+	if user.Balance != 50.00 {
+		t.Fatalf("expected balance=50.00 after first callback, got %.2f", user.Balance)
+	}
+
+	if err := svc.HandlePaymentCallback(ctx, "wx-123"); err != nil {
+		t.Fatalf("second callback failed: %v", err)
+	}
+
+	user, err = repo.GetUser(ctx, 1)
+	if err != nil {
+		t.Fatalf("get user failed: %v", err)
+	}
+	if user.Balance != 50.00 {
+		t.Fatalf("expected balance still 50.00 after second callback, got %.2f", user.Balance)
 	}
 }

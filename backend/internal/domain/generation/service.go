@@ -45,6 +45,7 @@ type Repository interface {
 	Dequeue(ctx context.Context) (*Generation, error)
 	UpdateStatus(ctx context.Context, id int64, status string) error
 	UpdateResult(ctx context.Context, id int64, status, resultURL string) error
+	ListByUser(ctx context.Context, userID int64) ([]*Generation, error)
 }
 
 type Service struct {

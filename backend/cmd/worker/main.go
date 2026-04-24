@@ -7,8 +7,10 @@ import (
 
 	_ "github.com/lib/pq"
 	"image-play/internal/config"
+	"image-play/internal/domain/billing"
 	"image-play/internal/repository/postgres"
 	"image-play/internal/worker"
+	"image-play/internal/worker/jobs"
 )
 
 func main() {
@@ -23,6 +25,9 @@ func main() {
 		log.Fatalf("database unreachable: %v", err)
 	}
 	repo := postgres.NewGenerationRepo(db)
-	runner := worker.NewRunner(repo, nil)
+	billingRepo := postgres.NewBillingRepo(db)
+	billingSvc := billing.NewService(billingRepo)
+	job := jobs.NewGenerationJob(repo, nil, nil, billingSvc)
+	runner := worker.NewRunner(repo, job)
 	runner.Run(context.Background())
 }

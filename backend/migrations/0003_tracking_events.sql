@@ -7,3 +7,5 @@ CREATE TABLE IF NOT EXISTS tracking_events (
     payload JSONB,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE INDEX IF NOT EXISTS idx_tracking_events_created_at ON tracking_events(created_at);

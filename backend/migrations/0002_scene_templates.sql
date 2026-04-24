@@ -8,5 +8,6 @@ CREATE TABLE IF NOT EXISTS scene_templates (
     form_schema JSONB NOT NULL,
     prompt_preset JSONB NOT NULL,
     sample_image_url VARCHAR(255),
-    is_active BOOLEAN DEFAULT TRUE
+    is_active BOOLEAN DEFAULT TRUE,
+    UNIQUE (scene_key, template_key)
 );

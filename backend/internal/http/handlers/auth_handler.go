@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -41,7 +42,7 @@ func LoginHandler(jwtSecret string) gin.HandlerFunc {
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"sub": user.ID,
+			"sub": strconv.FormatInt(user.ID, 10),
 			"iat": time.Now().Unix(),
 			"exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
 		})
@@ -66,9 +67,15 @@ func MeHandler(c *gin.Context) {
 		return
 	}
 
+	uid, ok := userID.(int64)
+	if !ok {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id"})
+		return
+	}
+
 	// In a real app, fetch user from DB by userID
 	user := User{
-		ID:        userID.(int64),
+		ID:        uid,
 		Openid:    "mock-openid",
 		Balance:   0,
 		FreeQuota: 3,

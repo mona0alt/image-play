@@ -14,7 +14,7 @@ func Load() *Config {
 		AppEnv:      getEnv("APP_ENV", "development"),
 		Port:        getEnv("PORT", "8080"),
 		DatabaseURL: getEnv("DATABASE_URL", ""),
-		JWTSecret:   getEnv("JWT_SECRET", "dev-secret-change-me"),
+		JWTSecret:   getEnv("JWT_SECRET", ""),
 	}
 }
 

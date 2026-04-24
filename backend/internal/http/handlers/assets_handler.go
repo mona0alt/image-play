@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +23,8 @@ func UploadIntentHandler(assetService *assets.Service) gin.HandlerFunc {
 
 		resp, err := assetService.CreateUploadIntent(c.Request.Context(), uid)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("CreateUploadIntent error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 			return
 		}
 

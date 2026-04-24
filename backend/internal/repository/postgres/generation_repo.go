@@ -85,6 +85,11 @@ func (r *GenerationRepo) UpdateStatus(ctx context.Context, id int64, status stri
 	return err
 }
 
+func (r *GenerationRepo) UpdateResult(ctx context.Context, id int64, status, resultURL string) error {
+	_, err := r.db.ExecContext(ctx, `UPDATE generations SET status = $1, result_url = $2, updated_at = $3 WHERE id = $4`, status, resultURL, time.Now(), id)
+	return err
+}
+
 func scanGeneration(row *sql.Row) (*generation.Generation, error) {
 	var g generation.Generation
 	var fieldsRaw []byte
@@ -101,7 +106,9 @@ func scanGeneration(row *sql.Row) (*generation.Generation, error) {
 		g.SourceAssetID = &sourceAssetID.Int64
 	}
 	if len(fieldsRaw) > 0 {
-		_ = json.Unmarshal(fieldsRaw, &g.Fields)
+		if err := json.Unmarshal(fieldsRaw, &g.Fields); err != nil {
+			return nil, err
+		}
 	}
 	return &g, nil
 }

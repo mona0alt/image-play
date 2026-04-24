@@ -7,6 +7,7 @@ import (
 	"image-play/internal/domain/assets"
 	"image-play/internal/domain/billing"
 	"image-play/internal/domain/generation"
+	"image-play/internal/domain/tracking"
 	"image-play/internal/http/handlers"
 	"image-play/internal/http/middleware"
 	"image-play/internal/repository/postgres"
@@ -39,6 +40,10 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 	authorized.GET("/packages", handlers.PackagesHandler(billingSvc))
 	authorized.POST("/orders", handlers.CreateOrderHandler(billingSvc))
 	authorized.GET("/history", handlers.HistoryHandlerV2(genRepo))
+
+	trackingRepo := postgres.NewTrackingRepo(db)
+	trackingSvc := tracking.NewService(trackingRepo)
+	authorized.POST("/tracking/events", handlers.TrackingEventsHandler(trackingSvc))
 
 	r.POST("/api/payments/callback", handlers.PaymentCallbackHandler(billingSvc))
 

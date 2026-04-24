@@ -102,6 +102,18 @@ func (r *mockGenerationRepo) UpdateResult(_ context.Context, id int64, status, r
 	return nil
 }
 
+func (r *mockGenerationRepo) ListByUser(_ context.Context, userID int64) ([]*generation.Generation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var results []*generation.Generation
+	for _, g := range r.generations {
+		if g.UserID == userID {
+			results = append(results, g)
+		}
+	}
+	return results, nil
+}
+
 func TestCreateGenerationSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := newMockGenerationRepo()

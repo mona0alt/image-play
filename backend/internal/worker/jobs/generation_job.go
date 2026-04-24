@@ -7,6 +7,7 @@ import (
 	"sort"
 	"time"
 
+	"image-play/internal/domain/billing"
 	"image-play/internal/domain/generation"
 )
 
@@ -43,12 +44,13 @@ func (m *MockAuditClient) Audit(ctx context.Context, imageURL string) (bool, err
 }
 
 type GenerationJob struct {
-	modelClient  ModelClient
-	auditClient  AuditClient
+	modelClient    ModelClient
+	auditClient    AuditClient
 	generationRepo generation.Repository
+	billingSvc     *billing.Service
 }
 
-func NewGenerationJob(repo generation.Repository, model ModelClient, audit AuditClient) *GenerationJob {
+func NewGenerationJob(repo generation.Repository, model ModelClient, audit AuditClient, billingSvc *billing.Service) *GenerationJob {
 	if model == nil {
 		model = &MockModelClient{}
 	}
@@ -56,9 +58,10 @@ func NewGenerationJob(repo generation.Repository, model ModelClient, audit Audit
 		audit = &MockAuditClient{}
 	}
 	return &GenerationJob{
-		modelClient:  model,
-		auditClient:  audit,
+		modelClient:    model,
+		auditClient:    audit,
 		generationRepo: repo,
+		billingSvc:     billingSvc,
 	}
 }
 
@@ -90,6 +93,12 @@ func (j *GenerationJob) Execute(ctx context.Context, g *generation.Generation) e
 
 	if err := j.generationRepo.UpdateResult(ctx, g.ID, "success", imageURL); err != nil {
 		return fmt.Errorf("update status to success: %w", err)
+	}
+
+	if j.billingSvc != nil {
+		if err := j.billingSvc.ChargeGeneration(ctx, g.UserID, g.ID); err != nil {
+			log.Printf("[GenerationJob] billing charge failed for generation %d: %v", g.ID, err)
+		}
 	}
 
 	log.Printf("[GenerationJob] generation %d completed successfully", g.ID)

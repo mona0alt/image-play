@@ -84,3 +84,4 @@ CREATE INDEX IF NOT EXISTS idx_generations_user_id ON generations(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_generation_id ON transactions(generation_id);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_generation_id_unique ON transactions(generation_id);

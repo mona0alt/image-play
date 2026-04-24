@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"image-play/internal/domain/assets"
+	"image-play/internal/domain/billing"
 	"image-play/internal/domain/generation"
 	"image-play/internal/http/handlers"
 	"image-play/internal/http/middleware"
@@ -21,9 +22,12 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 	r.POST("/api/auth/login", handlers.LoginHandler(jwtSecret))
 	r.GET("/api/configs/client", handlers.ClientConfigHandler)
 
+	billingRepo := postgres.NewBillingRepo(db)
+	billingSvc := billing.NewService(billingRepo)
+
 	authorized := r.Group("/api")
 	authorized.Use(middleware.AuthMiddleware(jwtSecret))
-	authorized.GET("/me", handlers.MeHandler)
+	authorized.GET("/me", handlers.MeHandler(billingRepo))
 
 	assetRepo := postgres.NewAssetRepo(db)
 	assetSvc := assets.NewService(assetRepo)
@@ -32,6 +36,11 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 	genRepo := postgres.NewGenerationRepo(db)
 	genSvc := generation.NewService(genRepo)
 	authorized.POST("/generations", handlers.CreateGenerationHandler(genSvc))
+	authorized.GET("/packages", handlers.PackagesHandler(billingSvc))
+	authorized.POST("/orders", handlers.CreateOrderHandler(billingSvc))
+	authorized.GET("/history", handlers.HistoryHandlerV2(genRepo))
+
+	r.POST("/api/payments/callback", handlers.PaymentCallbackHandler(billingSvc))
 
 	return r
 }

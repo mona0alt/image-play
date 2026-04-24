@@ -72,3 +72,26 @@ export function getClientConfig() {
     method: 'GET',
   })
 }
+
+export function getPackages() {
+  return request<{ packages: { code: string; title: string; price: string; count: number }[] }>({
+    url: '/api/packages',
+    method: 'GET',
+  })
+}
+
+export function createOrder(packageCode: string) {
+  return request<{ order_no: string; package_code: string; amount: string; prepay_id: string }>({
+    url: '/api/orders',
+    method: 'POST',
+    data: { package_code: packageCode },
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+export function getHistory() {
+  return request<{ items: { id: number; scene_key: string; template_key: string; status: string; result_url: string; created_at: string }[] }>({
+    url: '/api/history',
+    method: 'GET',
+  })
+}

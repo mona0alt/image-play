@@ -90,6 +90,53 @@ func (r *GenerationRepo) UpdateResult(ctx context.Context, id int64, status, res
 	return err
 }
 
+func (r *GenerationRepo) ListByUser(ctx context.Context, userID int64) ([]*generation.Generation, error) {
+	query := `
+		SELECT id, user_id, client_request_id, scene_key, template_key, fields, source_asset_id, status, result_url, prompt, created_at, updated_at
+		FROM generations
+		WHERE user_id = $1
+		ORDER BY created_at DESC
+	`
+	rows, err := r.db.QueryContext(ctx, query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var results []*generation.Generation
+	for rows.Next() {
+		g, err := scanGenerationRows(rows)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, g)
+	}
+	return results, rows.Err()
+}
+
+func scanGenerationRows(rows *sql.Rows) (*generation.Generation, error) {
+	var g generation.Generation
+	var fieldsRaw []byte
+	var sourceAssetID sql.NullInt64
+	err := rows.Scan(
+		&g.ID, &g.UserID, &g.ClientRequestID, &g.SceneKey, &g.TemplateKey,
+		&fieldsRaw, &sourceAssetID, &g.Status, &g.ResultURL, &g.Prompt,
+		&g.CreatedAt, &g.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if sourceAssetID.Valid {
+		g.SourceAssetID = &sourceAssetID.Int64
+	}
+	if len(fieldsRaw) > 0 {
+		if err := json.Unmarshal(fieldsRaw, &g.Fields); err != nil {
+			return nil, err
+		}
+	}
+	return &g, nil
+}
+
 func scanGeneration(row *sql.Row) (*generation.Generation, error) {
 	var g generation.Generation
 	var fieldsRaw []byte

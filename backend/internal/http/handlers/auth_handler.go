@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"image-play/internal/domain/billing"
 )
 
 type LoginRequest struct {
@@ -60,27 +61,32 @@ func LoginHandler(jwtSecret string) gin.HandlerFunc {
 	}
 }
 
-func MeHandler(c *gin.Context) {
-	userID, exists := c.Get("user_id")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
-		return
-	}
+func MeHandler(billingRepo billing.Repository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userID, exists := c.Get("user_id")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
+			return
+		}
 
-	uid, ok := userID.(int64)
-	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id"})
-		return
-	}
+		uid, ok := userID.(int64)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id"})
+			return
+		}
 
-	// In a real app, fetch user from DB by userID
-	user := User{
-		ID:        uid,
-		Openid:    "mock-openid",
-		Balance:   0,
-		FreeQuota: 3,
-	}
+		user, err := billingRepo.GetUser(c.Request.Context(), uid)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+			return
+		}
 
-	c.JSON(http.StatusOK, user)
+		c.JSON(http.StatusOK, User{
+			ID:        user.ID,
+			Openid:    "",
+			Balance:   int64(user.Balance),
+			FreeQuota: int64(user.FreeQuota),
+		})
+	}
 }
 

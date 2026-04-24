@@ -82,3 +82,15 @@ func (r *inMemoryRepo) UpdateResult(_ context.Context, id int64, status, resultU
 	g.UpdatedAt = time.Now()
 	return nil
 }
+
+func (r *inMemoryRepo) ListByUser(_ context.Context, userID int64) ([]*Generation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	var results []*Generation
+	for _, g := range r.generations {
+		if g.UserID == userID {
+			results = append(results, g)
+		}
+	}
+	return results, nil
+}

@@ -5,7 +5,8 @@
   "scripts": {
     "dev": "uni",
     "build": "uni build",
-    "test": "vitest"
+    "test": "vitest",
+    "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
     "@dcloudio/uni-app": "3.0.0-alpha-5000820260420001",

@@ -20,6 +20,7 @@ func TestBuildPromptForInvitation(t *testing.T) {
 	prompt := BuildPrompt(input)
 	require.Contains(t, prompt, "婚礼请柬")
 	require.Contains(t, prompt, "林然与苏晴")
+	require.Contains(t, prompt, "elegant")
 }
 
 func TestBuildPromptForPortrait(t *testing.T) {
@@ -36,6 +37,7 @@ func TestBuildPromptForPortrait(t *testing.T) {
 	require.Contains(t, prompt, "职业形象照")
 	require.Contains(t, prompt, "张三")
 	require.Contains(t, prompt, "高级产品经理")
+	require.Contains(t, prompt, "professional")
 }
 
 func TestBuildPromptEmptyFields(t *testing.T) {
@@ -48,6 +50,21 @@ func TestBuildPromptEmptyFields(t *testing.T) {
 	prompt := BuildPrompt(input)
 	require.Contains(t, prompt, "春节贺卡")
 	require.NotContains(t, prompt, "自定义信息")
+}
+
+func TestBuildPromptCombinesAllParts(t *testing.T) {
+	input := BuildInput{
+		SceneKey:    SceneInvitation,
+		TemplateKey: "wedding-classic",
+		Fields: map[string]string{
+			"host_name": "Alice",
+		},
+	}
+
+	prompt := BuildPrompt(input)
+	require.Contains(t, prompt, "婚礼请柬")
+	require.Contains(t, prompt, "elegant")
+	require.Contains(t, prompt, "Alice")
 }
 
 func TestBuildPromptUnknownScene(t *testing.T) {

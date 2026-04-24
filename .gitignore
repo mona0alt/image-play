@@ -1,0 +1,21 @@
+# Dependencies
+frontend/node_modules
+backend/vendor
+
+# Build outputs
+frontend/dist
+frontend/unpackage
+backend/bin
+
+# Environment files
+infra/env/*.env
+!infra/env/*.env.example
+
+# IDE
+.idea
+.vscode
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db

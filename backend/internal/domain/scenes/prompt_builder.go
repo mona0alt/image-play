@@ -2,6 +2,7 @@ package scenes
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 )
 
@@ -12,7 +13,7 @@ type BuildInput struct {
 }
 
 func BuildPrompt(input BuildInput) string {
-	sceneTemplates, ok := SceneTemplates[input.SceneKey]
+	sceneTemplates, ok := sceneTemplates[input.SceneKey]
 	if !ok {
 		return buildFallbackPrompt(input)
 	}
@@ -34,6 +35,7 @@ func BuildPrompt(input BuildInput) string {
 		for k, v := range input.Fields {
 			fieldParts = append(fieldParts, fmt.Sprintf("%s=%s", k, v))
 		}
+		sort.Strings(fieldParts)
 		parts = append(parts, "自定义信息："+strings.Join(fieldParts, "; "))
 	}
 
@@ -49,6 +51,7 @@ func buildFallbackPrompt(input BuildInput) string {
 		for k, v := range input.Fields {
 			fieldParts = append(fieldParts, fmt.Sprintf("%s=%s", k, v))
 		}
+		sort.Strings(fieldParts)
 		parts = append(parts, "自定义信息："+strings.Join(fieldParts, "; "))
 	}
 

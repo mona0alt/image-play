@@ -67,6 +67,33 @@ func TestBuildPromptCombinesAllParts(t *testing.T) {
 	require.Contains(t, prompt, "Alice")
 }
 
+func TestBuildPromptUnknownTemplate(t *testing.T) {
+	input := BuildInput{
+		SceneKey:    "invitation",
+		TemplateKey: "nonexistent-template",
+		Fields: map[string]string{
+			"host_name": "Alice",
+		},
+	}
+
+	prompt := BuildPrompt(input)
+	require.Contains(t, prompt, "场景：invitation")
+	require.Contains(t, prompt, "模板：nonexistent-template")
+	require.Contains(t, prompt, "host_name=Alice")
+}
+
+func TestBuildPromptNilFields(t *testing.T) {
+	input := BuildInput{
+		SceneKey:    "invitation",
+		TemplateKey: "wedding-classic",
+		Fields:      nil,
+	}
+
+	prompt := BuildPrompt(input)
+	require.Contains(t, prompt, "婚礼请柬")
+	require.NotContains(t, prompt, "自定义信息")
+}
+
 func TestBuildPromptUnknownScene(t *testing.T) {
 	input := BuildInput{
 		SceneKey:    "unknown-scene",

@@ -5,7 +5,7 @@ type TemplatePreset struct {
 	StyleWords []string
 }
 
-var SceneTemplates = map[string]map[string]TemplatePreset{
+var sceneTemplates = map[string]map[string]TemplatePreset{
 	SceneInvitation: {
 		"wedding-classic": {
 			BasePrompt: "婚礼请柬，优雅浪漫风格，白色与金色主色调，花卉装饰边框，新人姓名与婚礼信息清晰呈现，高品质印刷质感。",

@@ -1,4 +1,5 @@
-const API_BASE = (import.meta as any).env?.VITE_API_BASE || 'http://localhost:8080'
+// TODO: make API_BASE configurable via env at build time
+const API_BASE = 'http://localhost:8080'
 
 interface ApiResponse<T> {
   data: T
@@ -27,6 +28,7 @@ function request<T>(options: {
       method: options.method || 'GET',
       data: options.data as string | AnyObject | ArrayBuffer,
       header: headers,
+      timeout: 15000,
       success: (res) => {
         const response = res as unknown as ApiResponse<T>
         if (response.statusCode === 401) {

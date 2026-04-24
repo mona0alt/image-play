@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -23,6 +24,17 @@ func TestLoginReturnsTokenAndUser(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
-	require.Contains(t, w.Body.String(), "access_token")
-	require.Contains(t, w.Body.String(), "user")
+
+	var resp struct {
+		AccessToken string `json:"access_token"`
+		User        struct {
+			ID     int64  `json:"id"`
+			OpenID string `json:"openid"`
+		} `json:"user"`
+	}
+	err := json.Unmarshal(w.Body.Bytes(), &resp)
+	require.NoError(t, err)
+	require.NotEmpty(t, resp.AccessToken)
+	require.Equal(t, int64(1), resp.User.ID)
+	require.Equal(t, "mock-openid-mock-wechat-code", resp.User.OpenID)
 }

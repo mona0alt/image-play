@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +39,7 @@ func CreateGenerationHandler(svc *generation.Service) gin.HandlerFunc {
 			return
 		}
 
-		err := svc.CreateGeneration(c.Request.Context(), generation.CreateGenerationInput{
+		id, err := svc.CreateGeneration(c.Request.Context(), generation.CreateGenerationInput{
 			UserID:          uid,
 			ClientRequestID: req.ClientRequestID,
 			SceneKey:        req.SceneKey,
@@ -51,10 +52,11 @@ func CreateGenerationHandler(svc *generation.Service) gin.HandlerFunc {
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			log.Printf("CreateGeneration error: %v", err)
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 			return
 		}
 
-		c.JSON(http.StatusCreated, gin.H{"message": "created"})
+		c.JSON(http.StatusCreated, gin.H{"generation_id": id})
 	}
 }

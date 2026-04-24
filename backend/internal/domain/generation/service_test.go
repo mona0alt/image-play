@@ -8,12 +8,12 @@ import (
 )
 
 func TestCreateGenerationRejectsWhenActiveJobExists(t *testing.T) {
-	repo := NewInMemoryRepo()
+	repo := newInMemoryRepo()
 	svc := NewService(repo)
 	ctx := context.Background()
 
 	// Create first active generation
-	err1 := svc.CreateGeneration(ctx, CreateGenerationInput{
+	_, err1 := svc.CreateGeneration(ctx, CreateGenerationInput{
 		UserID:          1,
 		ClientRequestID: "req-1",
 		SceneKey:        "portrait",
@@ -23,7 +23,7 @@ func TestCreateGenerationRejectsWhenActiveJobExists(t *testing.T) {
 	require.NoError(t, err1)
 
 	// Try to create second active generation for same user
-	err2 := svc.CreateGeneration(ctx, CreateGenerationInput{
+	_, err2 := svc.CreateGeneration(ctx, CreateGenerationInput{
 		UserID:          1,
 		ClientRequestID: "req-2",
 		SceneKey:        "invitation",

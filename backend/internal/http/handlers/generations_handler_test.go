@@ -2,10 +2,15 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
@@ -15,19 +20,91 @@ import (
 
 func buildToken(userID int64, secret string) string {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": string(rune(userID)), // intentionally wrong for string conversion? No, use itoa style
-	})
-	// Actually use proper string
-	token = jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"sub": "1",
+		"sub": strconv.FormatInt(userID, 10),
 	})
 	s, _ := token.SignedString([]byte(secret))
 	return s
 }
 
+type mockGenerationRepo struct {
+	mu          sync.Mutex
+	generations map[int64]*generation.Generation
+	nextID      int64
+}
+
+func newMockGenerationRepo() *mockGenerationRepo {
+	return &mockGenerationRepo{
+		generations: make(map[int64]*generation.Generation),
+		nextID:      1,
+	}
+}
+
+func (r *mockGenerationRepo) Create(_ context.Context, g *generation.Generation) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, existing := range r.generations {
+		if existing.UserID == g.UserID && (existing.Status == "queued" || existing.Status == "running" || existing.Status == "result_auditing") {
+			return errors.New("pq: duplicate key value violates unique constraint \"unique_active_generation_per_user\"")
+		}
+	}
+	g.ID = r.nextID
+	r.nextID++
+	r.generations[g.ID] = g
+	return nil
+}
+
+func (r *mockGenerationRepo) GetActiveByUser(_ context.Context, userID int64) (*generation.Generation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, g := range r.generations {
+		if g.UserID == userID && (g.Status == "queued" || g.Status == "running" || g.Status == "result_auditing") {
+			return g, nil
+		}
+	}
+	return nil, nil
+}
+
+func (r *mockGenerationRepo) Dequeue(_ context.Context) (*generation.Generation, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	for _, g := range r.generations {
+		if g.Status == "queued" {
+			g.Status = "running"
+			g.UpdatedAt = time.Now()
+			return g, nil
+		}
+	}
+	return nil, nil
+}
+
+func (r *mockGenerationRepo) UpdateStatus(_ context.Context, id int64, status string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	g, ok := r.generations[id]
+	if !ok {
+		return errors.New("generation not found")
+	}
+	g.Status = status
+	g.UpdatedAt = time.Now()
+	return nil
+}
+
+func (r *mockGenerationRepo) UpdateResult(_ context.Context, id int64, status, resultURL string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	g, ok := r.generations[id]
+	if !ok {
+		return errors.New("generation not found")
+	}
+	g.Status = status
+	g.ResultURL = resultURL
+	g.UpdatedAt = time.Now()
+	return nil
+}
+
 func TestCreateGenerationSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	repo := generation.NewInMemoryRepo()
+	repo := newMockGenerationRepo()
 	svc := generation.NewService(repo)
 	r := gin.New()
 	r.POST("/api/generations", func(c *gin.Context) {
@@ -51,7 +128,7 @@ func TestCreateGenerationSuccess(t *testing.T) {
 
 func TestCreateGenerationRejectsActiveJob(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	repo := generation.NewInMemoryRepo()
+	repo := newMockGenerationRepo()
 	svc := generation.NewService(repo)
 	r := gin.New()
 	r.POST("/api/generations", func(c *gin.Context) {
@@ -89,7 +166,7 @@ func TestCreateGenerationRejectsActiveJob(t *testing.T) {
 
 func TestCreateGenerationBadRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	repo := generation.NewInMemoryRepo()
+	repo := newMockGenerationRepo()
 	svc := generation.NewService(repo)
 	r := gin.New()
 	r.POST("/api/generations", func(c *gin.Context) {

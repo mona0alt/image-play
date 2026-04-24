@@ -3,7 +3,7 @@ package generation
 import (
 	"context"
 	"errors"
-	"sync"
+	"strings"
 	"time"
 )
 
@@ -44,6 +44,7 @@ type Repository interface {
 	GetActiveByUser(ctx context.Context, userID int64) (*Generation, error)
 	Dequeue(ctx context.Context) (*Generation, error)
 	UpdateStatus(ctx context.Context, id int64, status string) error
+	UpdateResult(ctx context.Context, id int64, status, resultURL string) error
 }
 
 type Service struct {
@@ -54,15 +55,7 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) CreateGeneration(ctx context.Context, input CreateGenerationInput) error {
-	active, err := s.repo.GetActiveByUser(ctx, input.UserID)
-	if err != nil {
-		return err
-	}
-	if active != nil {
-		return ErrActiveGenerationExists
-	}
-
+func (s *Service) CreateGeneration(ctx context.Context, input CreateGenerationInput) (int64, error) {
 	now := time.Now()
 	g := &Generation{
 		UserID:          input.UserID,
@@ -75,63 +68,22 @@ func (s *Service) CreateGeneration(ctx context.Context, input CreateGenerationIn
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
-	return s.repo.Create(ctx, g)
-}
-
-type InMemoryRepo struct {
-	mu          sync.Mutex
-	generations map[int64]*Generation
-	nextID      int64
-}
-
-func NewInMemoryRepo() *InMemoryRepo {
-	return &InMemoryRepo{
-		generations: make(map[int64]*Generation),
-		nextID:      1,
-	}
-}
-
-func (r *InMemoryRepo) Create(_ context.Context, g *Generation) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	g.ID = r.nextID
-	r.nextID++
-	r.generations[g.ID] = g
-	return nil
-}
-
-func (r *InMemoryRepo) GetActiveByUser(_ context.Context, userID int64) (*Generation, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, g := range r.generations {
-		if g.UserID == userID && activeStatuses[g.Status] {
-			return g, nil
+	if err := s.repo.Create(ctx, g); err != nil {
+		if isUniqueViolation(err) {
+			return 0, ErrActiveGenerationExists
 		}
+		return 0, err
 	}
-	return nil, nil
+	return g.ID, nil
 }
 
-func (r *InMemoryRepo) Dequeue(_ context.Context) (*Generation, error) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	for _, g := range r.generations {
-		if g.Status == "queued" {
-			g.Status = "running"
-			g.UpdatedAt = time.Now()
-			return g, nil
-		}
+func isUniqueViolation(err error) bool {
+	// Check for PostgreSQL unique violation (error code 23505)
+	// This is a simplified check; in production you might use github.com/lib/pq
+	if err == nil {
+		return false
 	}
-	return nil, nil
+	msg := err.Error()
+	return strings.Contains(msg, "23505") || strings.Contains(msg, "unique constraint")
 }
 
-func (r *InMemoryRepo) UpdateStatus(_ context.Context, id int64, status string) error {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-	g, ok := r.generations[id]
-	if !ok {
-		return errors.New("generation not found")
-	}
-	g.Status = status
-	g.UpdatedAt = time.Now()
-	return nil
-}

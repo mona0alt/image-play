@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sort"
 	"time"
 
 	"image-play/internal/domain/generation"
@@ -67,13 +68,9 @@ func (j *GenerationJob) Execute(ctx context.Context, g *generation.Generation) e
 	// Build prompt from fields (MVP: simple concatenation)
 	prompt := buildPrompt(g)
 
-	if err := j.generationRepo.UpdateStatus(ctx, g.ID, "running"); err != nil {
-		return fmt.Errorf("update status to running: %w", err)
-	}
-
 	imageURL, err := j.modelClient.Generate(ctx, prompt)
 	if err != nil {
-		_ = j.generationRepo.UpdateStatus(ctx, g.ID, "failed")
+		_ = j.generationRepo.UpdateResult(ctx, g.ID, "failed", "")
 		return fmt.Errorf("model generation failed: %w", err)
 	}
 
@@ -83,19 +80,15 @@ func (j *GenerationJob) Execute(ctx context.Context, g *generation.Generation) e
 
 	pass, err := j.auditClient.Audit(ctx, imageURL)
 	if err != nil {
-		_ = j.generationRepo.UpdateStatus(ctx, g.ID, "failed")
+		_ = j.generationRepo.UpdateResult(ctx, g.ID, "failed", "")
 		return fmt.Errorf("audit failed: %w", err)
 	}
 	if !pass {
-		_ = j.generationRepo.UpdateStatus(ctx, g.ID, "failed")
+		_ = j.generationRepo.UpdateResult(ctx, g.ID, "failed", "")
 		return fmt.Errorf("audit did not pass")
 	}
 
-	// Update result_url and status success
-	g.ResultURL = imageURL
-	// For in-memory repo we can just set fields, but for postgres we'd need an UpdateResult method.
-	// For MVP we rely on UpdateStatus only; result_url update is omitted to keep repo interface minimal.
-	if err := j.generationRepo.UpdateStatus(ctx, g.ID, "success"); err != nil {
+	if err := j.generationRepo.UpdateResult(ctx, g.ID, "success", imageURL); err != nil {
 		return fmt.Errorf("update status to success: %w", err)
 	}
 
@@ -108,8 +101,13 @@ func buildPrompt(g *generation.Generation) string {
 		return g.Prompt
 	}
 	prompt := fmt.Sprintf("scene=%s template=%s", g.SceneKey, g.TemplateKey)
-	for k, v := range g.Fields {
-		prompt += fmt.Sprintf(" %s=%s", k, v)
+	keys := make([]string, 0, len(g.Fields))
+	for k := range g.Fields {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		prompt += fmt.Sprintf(" %s=%s", k, g.Fields[k])
 	}
 	return prompt
 }

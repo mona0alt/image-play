@@ -1,0 +1,147 @@
+<h2>小程序页面结构 V2（参考 ChatGPT 风格）</h2>
+<p class="subtitle">极简主界面 + 抽屉/弹窗收纳次要功能</p>
+
+<div class="section">
+  <h3>设计原则</h3>
+  <ul>
+    <li><strong>一个主界面</strong>：所有生成功能集中在首页，不用 Tab 切换</li>
+    <li><strong>历史藏侧边栏</strong>：像 ChatGPT 一样，历史记录收在左侧抽屉</li>
+    <li><strong>个人入口收右上角</strong>：余额、充值、设置收在头像下拉菜单</li>
+    <li><strong>结果全屏展示</strong>：生成结果以底部滑出卡片或全屏页展示</li>
+    <li><strong>底部悬浮操作</strong>：核心按钮（生成/重新生成）始终在手边</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>页面清单</h3>
+  <div class="options">
+    <div class="option" data-choice="main" onclick="toggleSelect(this)">
+      <div class="letter">1</div>
+      <div class="content">
+        <h3>首页（主生成界面）</h3>
+        <p><strong>顶部栏（极简）：</strong></p>
+        <ul>
+          <li>左上角 ☰ 按钮 → 打开<strong>历史抽屉</strong></li>
+          <li>中央标题：可切换 "文生图" / "图生图" 的小下拉</li>
+          <li>右上角头像 → 打开<strong>个人菜单</strong></li>
+        </ul>
+        <p><strong>中央区域：</strong></p>
+        <ul>
+          <li>大输入框（占位符："描述你想要的画面..."）</li>
+          <li>图生图模式下，输入框上方显示原图缩略图（可点击重选）</li>
+          <li>风格选择：输入框下方一排小圆角标签（写实 / 动漫 / 油画 / 像素...）</li>
+        </ul>
+        <p><strong>底部悬浮：</strong></p>
+        <ul>
+          <li>圆形/胶囊生成按钮，始终可见</li>
+          <li>按钮旁小字显示预估费用（"本次 1 元" / "免费额度剩余 2 张"）</li>
+        </ul>
+      </div>
+    </div>
+    <div class="option" data-choice="drawer" onclick="toggleSelect(this)">
+      <div class="letter">2</div>
+      <div class="content">
+        <h3>历史抽屉（侧边栏）</h3>
+        <p>从左侧滑出，遮罩层覆盖主界面。</p>
+        <ul>
+          <li>顶部：搜索框 + "新建生成"按钮</li>
+          <li>中部：按时间分组（今天 / 昨天 / 7天内 / 更早）</li>
+          <li>每项：缩略图 + prompt 前 10 字 + 时间</li>
+          <li>长按/左滑：删除（软删除）</li>
+          <li>点击：关闭抽屉，回到首页并加载该 prompt 到输入框</li>
+        </ul>
+      </div>
+    </div>
+    <div class="option" data-choice="menu" onclick="toggleSelect(this)">
+      <div class="letter">3</div>
+      <div class="content">
+        <h3>个人菜单（弹窗）</h3>
+        <p>点击右上角头像后下拉/弹出。</p>
+        <ul>
+          <li>头像 + 昵称</li>
+          <li>余额：¥12.50</li>
+          <li>免费额度：剩余 1 张</li>
+          <li>---</li>
+          <li>去充值 → 跳转充值页</li>
+          <li>生成历史 → 打开历史抽屉</li>
+          <li>隐私政策</li>
+          <li>用户协议</li>
+        </ul>
+      </div>
+    </div>
+    <div class="option" data-choice="result" onclick="toggleSelect(this)">
+      <div class="letter">4</div>
+      <div class="content">
+        <h3>结果预览页（全屏/底部卡片）</h3>
+        <p>生成完成后从底部滑出全屏卡片，或跳转新页面。</p>
+        <ul>
+          <li>大图展示生成结果（1024x1024）</li>
+          <li>底部操作栏：
+            <ul>
+              <li>💾 保存到相册</li>
+              <li>📤 分享给好友</li>
+              <li>🔄 重新生成（用相同 prompt）</li>
+              <li>✏️ 修改 prompt（返回首页并保留输入）</li>
+            </ul>
+          </li>
+          <li>下滑/点击遮罩关闭，回到首页</li>
+        </ul>
+      </div>
+    </div>
+    <div class="option" data-choice="recharge" onclick="toggleSelect(this)">
+      <div class="letter">5</div>
+      <div class="content">
+        <h3>充值页（全屏）</h3>
+        <p>从个人菜单进入。</p>
+        <ul>
+          <li>顶部：当前余额</li>
+          <li>中部：套餐卡片（充50送10 / 充100送30）</li>
+          <li>底部：微信支付按钮</li>
+          <li>支付成功后自动返回并刷新余额</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>对比：平铺式 vs ChatGPT 式</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">V1: 平铺 Tab 式</div>
+      <div class="mockup-body">
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+          <div style="width: 80%; height: 120px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px;">文生图页</div>
+          <div style="width: 100%; display: flex; justify-content: space-around; font-size: 10px; border-top: 1px solid #ddd; padding-top: 4px;">
+            <span>首页</span><span>图生图</span><span>历史</span><span>我的</span>
+          </div>
+        </div>
+        <p style="font-size: 12px; margin-top: 8px;">❌ 功能分散，用户需在多个 Tab 间跳转</p>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">V2: ChatGPT 式</div>
+      <div class="mockup-body">
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+          <div style="width: 100%; display: flex; justify-content: space-between; font-size: 10px; padding: 0 8px;">
+            <span>☰</span><span>文生图 ▼</span><span>头像</span>
+          </div>
+          <div style="width: 80%; height: 120px; background: #f5f5f5; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 12px;">输入框 + 生成按钮</div>
+          <div style="width: 60%; padding: 6px; background: #e3f2fd; border-radius: 12px; text-align: center; font-size: 10px;">⚡ 生成（预估 1 元）</div>
+        </div>
+        <p style="font-size: 12px; margin-top: 8px;">✅ 核心操作聚焦，历史和设置不干扰主流程</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>关键交互细节</h3>
+  <ul>
+    <li><strong>首次进入：</strong>直接展示首页，无需选择。默认文生图模式。</li>
+    <li><strong>文生图 ↔ 图生图切换：</strong>点击顶部标题栏的下拉箭头切换，不用跳转页面。</li>
+    <li><strong>生成中：</strong>输入框禁用，按钮变加载态，显示进度文案（"正在想象画面..."）。</li>
+    <li><strong>连续生成：</strong>结果页下滑关闭后，输入框保留上次 prompt，方便修改后再生成。</li>
+    <li><strong>空状态：</strong>历史抽屉为空时，显示"还没有生成记录，去创作第一张吧"。</li>
+  </ul>
+</div>

@@ -1,0 +1,56 @@
+<h2>Go 后端调用模型是否走 Higress？</h2>
+<p class="subtitle">推荐走 Higress，让 AI 插件生效</p>
+
+<div class="section">
+  <h3>两种模式对比</h3>
+  <div class="split">
+    <div class="mockup">
+      <div class="mockup-header">模式 A：Go → Higress → 模型（推荐）</div>
+      <div class="mockup-body">
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+          <div style="padding: 8px; background: #e8f5e9; border-radius: 6px; width: 80%; text-align: center;">Go 后端</div>
+          <div style="text-align: center;">↓ 内部网络</div>
+          <div style="padding: 8px; background: #fff3e0; border-radius: 6px; width: 80%; text-align: center;">Higress<br/><span style="font-size: 11px;">限流 · 缓存 · 审计</span></div>
+          <div style="text-align: center;">↓ 公网</div>
+          <div style="padding: 8px; background: #f5f5f5; border-radius: 6px; width: 80%; text-align: center; border: 1px dashed #ccc;">外部模型 API</div>
+        </div>
+        <p style="font-size: 12px; margin-top: 8px;">✅ Higress 的 AI 插件对生成流量生效<br/>✅ 统一限流，防止压垮模型<br/>⚠️ 多一跳内部网络（Docker 内 1ms 以内，可忽略）</p>
+      </div>
+    </div>
+    <div class="mockup">
+      <div class="mockup-header">模式 B：Go → 直调模型</div>
+      <div class="mockup-body">
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+          <div style="padding: 8px; background: #e8f5e9; border-radius: 6px; width: 80%; text-align: center;">Go 后端</div>
+          <div style="text-align: center;">↓ 公网</div>
+          <div style="padding: 8px; background: #f5f5f5; border-radius: 6px; width: 80%; text-align: center; border: 1px dashed #ccc;">外部模型 API</div>
+        </div>
+        <p style="font-size: 12px; margin-top: 8px;">✅ 少一跳网络<br/>❌ Higress 限流/缓存对生成无效<br/>❌ 模型调用分散，难以统一管控</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>推荐：模式 A</h3>
+  <p>既然已经部署了 Higress，核心目的就是<strong>统一管理模型调用</strong>。Go 后端调用模型时走 Higress（内部 Docker 网络地址，如 <code>http://higress:8080/model/xxx</code>），这样：</p>
+  <ul>
+    <li><strong>限流生效：</strong>防止单个用户刷爆模型 API</li>
+    <li><strong>缓存生效：</strong>相同 prompt 可能命中缓存，节省成本</li>
+    <li><strong>审计生效：</strong>所有 prompt 和结果都被 Higress 记录</li>
+    <li><strong>模型切换：</strong>只需改 Higress 配置，Go 代码不动</li>
+  </ul>
+  <p>内部 Docker 网络多一跳的延迟在 <strong>1ms 以内</strong>，完全可以忽略。</p>
+</div>
+
+<div class="section">
+  <h3>Higress 的双重角色</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <ul>
+        <li><strong>公网入口：</strong>小程序 → Higress(443) → /api/* → Go 后端</li>
+        <li><strong>内部 AI 网关：</strong>Go 后端 → Higress(内部 8080) → /model/* → 外部模型</li>
+      </ul>
+    </div>
+  </div>
+</div>

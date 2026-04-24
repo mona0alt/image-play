@@ -1,0 +1,53 @@
+<h2>内容审核对生成延迟的影响</h2>
+<p class="subtitle">两种接入方式对比</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">方案 X：同步审核（推荐）</div>
+    <div class="mockup-body">
+      <p><strong>文生图流程：</strong></p>
+      <ol>
+        <li>用户提交 prompt + 风格</li>
+        <li>Go 后端扣费/检查免费额度</li>
+        <li>调用模型 API 生成（<strong>3~10s</strong>）</li>
+        <li>拿到图片 URL，调用内容审核（<strong>~300ms</strong>）</li>
+        <li>审核通过 → 返回图片给用户</li>
+        <li>审核不通过 → 返回"内容违规"，图片不入库</li>
+      </ol>
+      <p><strong>图生图流程：</strong></p>
+      <ol>
+        <li>用户上传原图</li>
+        <li><strong>先审核原图（~200ms）</strong> → 不通过直接拒绝</li>
+        <li>调用模型生成（3~10s）</li>
+        <li>再审核结果图（~300ms）</li>
+        <li>返回结果</li>
+      </ol>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>额外延迟仅 200~500ms</li><li>模型生成 3~10s 是主要耗时，审核几乎可以忽略</li><li>违规图片绝不会被用户看到</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">方案 Y：异步审核</div>
+    <div class="mockup-body">
+      <p><strong>流程：</strong></p>
+      <ol>
+        <li>用户提交生成请求</li>
+        <li>模型生成后<strong>立即返回</strong>给用户</li>
+        <li>后台异步审核</li>
+        <li>审核不通过 → 撤回/隐藏图片</li>
+      </ol>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>零额外延迟</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>违规图片已被用户看到（风险）</li><li>需要撤回机制，代码复杂</li><li>用户刚保存分享的图片突然消失，体验差</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>结论</h3>
+  <p><strong>推荐方案 X（同步审核）。</strong></p>
+  <p>腾讯云数据万象图片审核平均延迟在 <strong>200~500ms</strong>，而模型生成本身需要 <strong>3~10 秒</strong>。审核耗时只占总时间的 5% 左右，用户几乎感知不到。</p>
+  <p>如果模型生成走异步队列（未来扩展），审核也可以一并放在队列里处理，不影响 API 响应。</p>
+</div>

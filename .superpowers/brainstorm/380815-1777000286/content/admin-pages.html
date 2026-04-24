@@ -1,0 +1,59 @@
+<h2>管理后台页面结构</h2>
+<p class="subtitle">独立 Web 页面，JWT 登录保护</p>
+
+<div class="section">
+  <h3>页面清单</h3>
+  <div class="options">
+    <div class="option" data-choice="login" onclick="toggleSelect(this)">
+      <div class="letter">1</div>
+      <div class="content">
+        <h3>登录页</h3>
+        <p>管理员账号密码登录，成功后存储 admin_token。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="dashboard" onclick="toggleSelect(this)">
+      <div class="letter">2</div>
+      <div class="content">
+        <h3>概览页（Dashboard）</h3>
+        <p>今日收入、今日生成张数、注册用户数、余额总池。图表展示最近 7 天趋势。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="users" onclick="toggleSelect(this)">
+      <div class="letter">3</div>
+      <div class="content">
+        <h3>用户列表</h3>
+        <p>展示所有注册用户：openid（脱敏）、昵称、余额、总生成数、注册时间。支持搜索、分页。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="orders" onclick="toggleSelect(this)">
+      <div class="letter">4</div>
+      <div class="content">
+        <h3>充值记录</h3>
+        <p>所有充值订单：订单号、用户、金额、赠送、状态、支付时间。支持按状态筛选。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="transactions" onclick="toggleSelect(this)">
+      <div class="letter">5</div>
+      <div class="content">
+        <h3>消费流水</h3>
+        <p>所有余额变动：用户、类型（充值/消费/赠送）、金额、变动后余额、时间。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="config" onclick="toggleSelect(this)">
+      <div class="letter">6</div>
+      <div class="content">
+        <h3>系统配置</h3>
+        <p>修改：生成单价、免费额度、充值套餐（JSON 编辑）、上传大小限制（MB）。修改后后端热刷新。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>技术方案</h3>
+  <ul>
+    <li><strong>前端：</strong>纯 HTML + JS 或轻量 Vue3（推荐 Vue3 + Element Plus，开发快）</li>
+    <li><strong>部署：</strong>和后端 Go 服务跑在同一台服务器，Go  serve 静态文件</li>
+    <li><strong>安全：</strong>单独端口或 /admin 路径，Nginx/IP 白名单限制访问（可选）</li>
+  </ul>
+</div>

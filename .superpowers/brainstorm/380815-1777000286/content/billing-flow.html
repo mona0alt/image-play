@@ -1,0 +1,59 @@
+<h2>计费流程：成功才扣费</h2>
+<p class="subtitle">避免失败时扣费，支持并发安全</p>
+
+<div class="mockup">
+  <div class="mockup-header">生成计费流程图</div>
+  <div class="mockup-body">
+    <div style="display: flex; flex-direction: column; gap: 8px;">
+      <div style="padding: 8px; background: #e3f2fd; border-radius: 6px;">
+        <strong>1. 提交生成请求</strong><br/>
+        <span style="font-size: 12px;">前端传入 prompt + 风格（或原图）</span>
+      </div>
+      <div style="text-align: center;">↓</div>
+      <div style="padding: 8px; background: #fff3e0; border-radius: 6px;">
+        <strong>2. 检查额度（不扣费）</strong><br/>
+        <span style="font-size: 12px;">检查 免费额度 > 0 或 余额 ≥ 单价<br/>同时检查该用户是否有进行中的生成（防并发）</span>
+      </div>
+      <div style="text-align: center;">↓ 足够</div>
+      <div style="padding: 8px; background: #e8f5e9; border-radius: 6px;">
+        <strong>3. 创建 generation 记录（status = generating）</strong><br/>
+        <span style="font-size: 12px;">写入数据库，锁定用户生成状态</span>
+      </div>
+      <div style="text-align: center;">↓</div>
+      <div style="padding: 8px; background: #e3f2fd; border-radius: 6px;">
+        <strong>4. 调用模型 API 生成</strong><br/>
+        <span style="font-size: 12px;">通过 Higress 调用第三方模型（3~10s）</span>
+      </div>
+      <div style="text-align: center;">↓</div>
+      <div style="padding: 8px; background: #fff3e0; border-radius: 6px;">
+        <strong>5. 内容审核</strong><br/>
+        <span style="font-size: 12px;">同步审核结果图（~300ms）</span>
+      </div>
+      <div style="text-align: center;">↓</div>
+      <div style="display: flex; gap: 8px;">
+        <div style="flex: 1; padding: 8px; background: #e8f5e9; border-radius: 6px; text-align: center;">
+          <strong>6a. 成功 + 审核通过</strong><br/>
+          <span style="font-size: 12px;">扣免费额度/余额 → 记流水<br/>status = success</span>
+        </div>
+        <div style="flex: 1; padding: 8px; background: #ffebee; border-radius: 6px; text-align: center;">
+          <strong>6b. 失败/审核不通过</strong><br/>
+          <span style="font-size: 12px;">不扣费<br/>status = failed / audit_rejected</span>
+        </div>
+      </div>
+      <div style="text-align: center;">↓</div>
+      <div style="padding: 8px; background: #f3e5f5; border-radius: 6px;">
+        <strong>7. 释放用户生成锁</strong><br/>
+        <span style="font-size: 12px;">用户可提交下一次生成</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>关键设计</h3>
+  <ul>
+    <li><strong>后扣费：</strong>生成成功且审核通过后才真正扣费，失败/审核不通过零成本。</li>
+    <li><strong>并发锁：</strong>一个用户同时只能有 1 个进行中的生成（通过数据库 <code>status = 'generating'</code> 或 Redis 锁），防止并发扣费冲突。</li>
+    <li><strong>超时兜底：</strong>模型 API 60s 超时，超时后标记为 failed，不扣费。</li>
+  </ul>
+</div>

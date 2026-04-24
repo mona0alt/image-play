@@ -1,0 +1,62 @@
+<h2>架构方案对比</h2>
+<p class="subtitle">基于你的需求：最低成本、最高效率、个体户运营</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>单体 All-in-One（推荐）</h3>
+      <p><strong>1 台轻量服务器，全部跑在一起</strong></p>
+      <ul>
+        <li>Go 后端：HTTP API + 微信支付回调 + 管理后台</li>
+        <li>Higress：Docker 容器跑在同一台机器</li>
+        <li>PostgreSQL：自部署在同一台机器</li>
+        <li>图片直传 COS，URL 回存数据库</li>
+      </ul>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>成本最低（~80元/月）</li><li>部署最简单，一个 docker-compose 搞定</li><li>调试方便，无需跨服务排查</li><li>适合初期验证业务</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>单点故障</li><li>后期扩容需迁移</li><li>图片生成阻塞会影响 API 响应</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>服务拆分 + 异步队列</h3>
+      <p><strong>2 台服务器，业务与生成分离</strong></p>
+      <ul>
+        <li>Server A：Go API + 管理后台 + PostgreSQL</li>
+        <li>Server B：Higress + 图片生成 Worker</li>
+        <li>Redis 做任务队列，异步处理生成</li>
+        <li>生成完成后回调或轮询获取结果</li>
+      </ul>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>API 响应不受生成耗时影响</li><li>生成服务可独立扩容</li><li>队列可削峰，防止并发压垮模型 API</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>成本翻倍（~200元/月）</li><li>开发复杂度高（队列、回调、状态机）</li><li>运维复杂度增加</li></ul></div>
+      </div>
+    </div>
+  </div>
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Serverless 混合</h3>
+      <p><strong>云函数 + 托管数据库 + Higress 自建</strong></p>
+      <ul>
+        <li>Go API 用腾讯云 SCF（按调用计费）</li>
+        <li>PostgreSQL 用腾讯云 Serverless 版</li>
+        <li>Higress 仍需一台小服务器跑网关</li>
+        <li>COS 存储图片</li>
+      </ul>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>用户少时成本极低（甚至免费）</li><li>自动扩缩容</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>SCF 冷启动慢（影响体验）</li><li>Higress 仍需服务器，省不了多少</li><li>微信支付回调配置复杂</li><li>调试困难</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>我的推荐：方案 A</h3>
+  <p>你现在的核心诉求是<strong>低成本、快上线、验证业务</strong>。方案 A 用 docker-compose 可以在 1 天内完成部署，月成本控制在 100 元以内。</p>
+  <p>即使日活涨到 1000，2核4G + 合理的连接池也撑得住。等业务量真正上来了，再迁移到方案 B 也不迟——Go 的代码拆分成本很低。</p>
+</div>

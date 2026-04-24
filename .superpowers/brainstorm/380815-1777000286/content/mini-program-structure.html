@@ -1,0 +1,70 @@
+<h2>小程序页面结构</h2>
+<p class="subtitle">共 5 个核心页面</p>
+
+<div class="section">
+  <h3>页面清单</h3>
+  <div class="options">
+    <div class="option" data-choice="home" onclick="toggleSelect(this)">
+      <div class="letter">1</div>
+      <div class="content">
+        <h3>首页（文生图）</h3>
+        <p>输入 prompt、选择风格、点击生成。顶部展示余额和免费额度。</p>
+        <p><strong>底部 Tab：</strong>首页 | 图生图 | 历史 | 我的</p>
+      </div>
+    </div>
+    <div class="option" data-choice="img2img" onclick="toggleSelect(this)">
+      <div class="letter">2</div>
+      <div class="content">
+        <h3>图生图页</h3>
+        <p>上传原图（从相册或拍照）→ 输入 prompt → 选择风格 → 生成。上传前先校验大小（≤5MB）。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="history" onclick="toggleSelect(this)">
+      <div class="letter">3</div>
+      <div class="content">
+        <h3>历史记录页</h3>
+        <p>瀑布流/列表展示所有生成记录。支持长按删除（软删除）、点击预览、下载到相册、分享给好友。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="profile" onclick="toggleSelect(this)">
+      <div class="letter">4</div>
+      <div class="content">
+        <h3>我的页</h3>
+        <p>展示头像昵称、余额、充值入口、免费额度说明、隐私政策入口。</p>
+      </div>
+    </div>
+    <div class="option" data-choice="recharge" onclick="toggleSelect(this)">
+      <div class="letter">5</div>
+      <div class="content">
+        <h3>充值页</h3>
+        <p>展示后台配置的充值套餐，选中后调起微信支付。充值成功后刷新余额。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>关键交互流程</h3>
+  <div class="mockup">
+    <div class="mockup-header">生成流程交互</div>
+    <div class="mockup-body">
+      <ol>
+        <li>用户输入 prompt → 点击"生成"</li>
+        <li>前端显示加载动画（最多 60s）</li>
+        <li>成功：展示结果图，提供"保存"和"分享"按钮</li>
+        <li>审核不通过：Toast 提示"内容违规，请修改描述"，已扣费</li>
+        <li>余额不足：弹窗"余额不足，去充值？"</li>
+        <li>被封禁：弹窗"因多次违规，10分钟内无法生成"</li>
+      </ol>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>分享功能</h3>
+  <ul>
+    <li>结果页支持 <code>onShareAppMessage</code> 分享给微信好友（带图片预览）</li>
+    <li>不支持分享到朋友圈（小程序限制），但可引导用户下载后手动发朋友圈</li>
+    <li>历史页长按图片 → "分享给好友" 或 "保存到相册"</li>
+  </ul>
+</div>

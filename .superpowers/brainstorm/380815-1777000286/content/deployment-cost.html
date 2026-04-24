@@ -1,0 +1,50 @@
+<h2>部署方案成本对比</h2>
+<p class="subtitle">针对微信小程序 + Go 后端 + Higress + PostgreSQL</p>
+
+<div class="options">
+  <div class="option" data-choice="lightweight" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>轻量服务器 All-in-One（最低成本）</h3>
+      <p><strong>约 50~100 元/月</strong></p>
+      <p>1 台腾讯云轻量应用服务器（2核4G），自部署 PostgreSQL + Higress(Docker) + Go 后端。</p>
+      <p>优点：成本最低，运维简单，适合冷启动</p>
+      <p>缺点：单点故障，后期扩容需迁移</p>
+    </div>
+  </div>
+  <div class="option" data-choice="cvm-managed-db" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>CVM + 托管数据库</h3>
+      <p><strong>约 200~350 元/月</strong></p>
+      <p>1 台 CVM 跑 Higress + Go，腾讯云托管 PostgreSQL（自动备份、监控）。</p>
+      <p>优点：数据库有保障，省心</p>
+      <p>缺点：成本翻倍，初期性价比低</p>
+    </div>
+  </div>
+  <div class="option" data-choice="serverless" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Serverless（按量付费）</h3>
+      <p><strong>约 0~50 元/月（初期）</strong></p>
+      <p>Go 后端用腾讯云云函数 SCF，数据库用 Serverless PostgreSQL，Higress 需另找托管。</p>
+      <p>优点：用户少时几乎免费</p>
+      <p>缺点：Higress 不好部署，冷启动慢，架构复杂</p>
+    </div>
+  </div>
+  <div class="option" data-choice="tke" onclick="toggleSelect(this)">
+    <div class="letter">D</div>
+    <div class="content">
+      <h3>TKE 容器集群</h3>
+      <p><strong>约 400~800 元/月</strong></p>
+      <p>腾讯云 Kubernetes，多节点高可用，自动扩缩容。</p>
+      <p>优点：企业级，易于扩展</p>
+      <p>缺点：成本最高，运维复杂</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>推荐</h3>
+  <p>如果追求<strong>最低成本</strong>，选 <strong>方案 A（轻量服务器 All-in-One）</strong>。腾讯云轻量 2核4G 新用户首年经常 50~80 元/月，足够支撑几百日活。等业务增长后再拆分到托管数据库或 K8s。</p>
+</div>

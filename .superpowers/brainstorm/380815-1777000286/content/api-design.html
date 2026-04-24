@@ -1,0 +1,204 @@
+<h2>API 设计</h2>
+<p class="subtitle">Go 后端 HTTP API，RESTful 风格</p>
+
+<div class="section">
+  <h3>认证方式</h3>
+  <p>小程序登录后，后端返回 <code>access_token</code>（JWT），后续请求带在 Header：</p>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px;">Authorization: Bearer &lt;jwt_token&gt;</pre>
+  <p>管理后台单独用 <code>admin_token</code>，不和小程序混用。</p>
+</div>
+
+<div class="section">
+  <h3>1. 用户模块</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <p><strong>POST /api/auth/login</strong> — 微信登录</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Request:
+{
+  "code": "wx_login_code"  // 小程序 wx.login() 拿到的 code
+}
+
+Response:
+{
+  "access_token": "jwt...",
+  "expires_in": 86400,
+  "user": {
+    "id": 1,
+    "nickname": "用户昵称",
+    "avatar_url": "...",
+    "balance": 12.50,
+    "free_quota": 1
+  }
+}</pre>
+
+      <p><strong>GET /api/user/me</strong> — 获取当前用户信息</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Response:
+{
+  "id": 1,
+  "nickname": "用户昵称",
+  "avatar_url": "...",
+  "balance": 12.50,
+  "free_quota": 1,
+  "is_banned": false,
+  "ban_expires_at": null
+}</pre>
+
+      <p><strong>GET /api/user/history</strong> — 历史记录列表</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Query: ?page=1&size=20
+
+Response:
+{
+  "total": 45,
+  "list": [
+    {
+      "id": 100,
+      "type": "text2img",
+      "prompt": "a cute cat",
+      "style": "anime",
+      "result_url": "https://cos.example.com/img/xxx.jpg",
+      "status": "success",
+      "cost": 1.00,
+      "created_at": "2026-04-24T10:30:00Z"
+    }
+  ]
+}</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>2. 生成模块</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <p><strong>POST /api/generate/text2img</strong> — 文生图</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Request:
+{
+  "prompt": "a cute cat in space",
+  "style": "anime"  // 可选，默认 'default'
+}
+
+Response (同步，最多等待 60s):
+{
+  "id": 101,
+  "status": "success",
+  "result_url": "https://cos.example.com/img/xxx.jpg",
+  "cost": 1.00,
+  "message": null
+}
+
+// 或审核不通过：
+{
+  "id": 101,
+  "status": "audit_rejected",
+  "result_url": null,
+  "cost": 1.00,
+  "message": "生成内容涉及违规，请修改描述"
+}</pre>
+
+      <p><strong>POST /api/generate/img2img</strong> — 图生图</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Request:
+{
+  "source_url": "https://cos.example.com/upload/yyy.jpg",  // COS 直传后的地址
+  "prompt": "convert to oil painting",
+  "style": "oil_painting"
+}
+
+// Response 同文生图</pre>
+
+      <p><strong>GET /api/generate/:id</strong> — 查询生成状态（超时后轮询用）</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Response:
+{
+  "id": 101,
+  "status": "generating",  // generating | success | failed | audit_rejected
+  "result_url": null,
+  "cost": 0,
+  "message": null
+}</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>3. 支付模块</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <p><strong>GET /api/pay/packages</strong> — 充值套餐列表</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Response:
+{
+  "packages": [
+    { "id": 1, "amount": 50, "bonus": 10, "desc": "充50送10" },
+    { "id": 2, "amount": 100, "bonus": 30, "desc": "充100送30" }
+  ]
+}</pre>
+
+      <p><strong>POST /api/pay/create</strong> — 创建充值订单</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Request:
+{
+  "package_id": 1  // 或直接用 amount
+}
+
+Response:
+{
+  "order_no": "R20260424103000xxx",
+  "wx_pay_params": {
+    "timeStamp": "...",
+    "nonceStr": "...",
+    "package": "prepay_id=...",
+    "signType": "RSA",
+    "paySign": "..."
+  }
+}</pre>
+
+      <p><strong>POST /api/pay/callback</strong> — 微信支付回调（微信服务器调用，非前端）</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">// 微信 POST 的 XML/JSON，后端校验签名后处理
+// 幂等：同一 wx_order_no 只处理一次
+// 成功后：更新订单状态 + 增加用户余额 + 记流水</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>4. 上传模块</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <p><strong>GET /api/upload/cos-sign</strong> — 获取 COS 临时上传签名</p>
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">Query: ?filename=cat.jpg&file_size=2048000
+
+Response:
+{
+  "cos_url": "https://bucket.cos.ap-guangzhou.myqcloud.com",
+  "tmp_secret_id": "...",
+  "tmp_secret_key": "...",
+  "session_token": "...",
+  "expired_time": 1713942600,
+  "key": "uploads/20260424/xxx.jpg"
+}</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>5. 管理后台 API（需 admin_token）</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <pre style="background: #f5f5f5; padding: 8px; border-radius: 4px; font-size: 12px;">POST   /api/admin/login
+GET    /api/admin/dashboard          // 统计数据
+GET    /api/admin/users?page=1&size=20
+GET    /api/admin/orders?page=1&size=20
+GET    /api/admin/transactions?page=1&size=20
+GET    /api/admin/generations?page=1&size=20
+GET    /api/admin/configs             // 系统配置
+PUT    /api/admin/configs             // 修改配置</pre>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>错误码统一格式</h3>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px;">{
+  "code": "INSUFFICIENT_BALANCE",  // 业务错误码
+  "message": "余额不足，请先充值",
+  "data": null
+}</pre>
+  <p>常见错误码：UNAUTHORIZED、FORBIDDEN、INSUFFICIENT_BALANCE、BANNED、AUDIT_REJECTED、GENERATION_FAILED、INVALID_PARAM</p>
+</div>

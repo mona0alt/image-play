@@ -1,0 +1,55 @@
+<h2>为什么同时需要 Higress 和 Nginx？</h2>
+<p class="subtitle">其实可以省掉一个</p>
+
+<div class="section">
+  <h3>原始设计的问题</h3>
+  <p>你问得很对。Higress 本身就是基于 Envoy 的网关，已经具备反向代理、路由、HTTPS 能力。再叠一层 Nginx 是多余的。</p>
+</div>
+
+<div class="section">
+  <h3>调整后的方案：只用 Higress 做网关</h3>
+  <div class="mockup">
+    <div class="mockup-header">简化后的架构</div>
+    <div class="mockup-body">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 8px; background: #fff3e0; border-radius: 6px; text-align: center;">
+          <strong>Higress（唯一入口）</strong><br/>
+          <span style="font-size: 12px;">80/443 → HTTPS 终止 → 路由分发</span>
+        </div>
+        <div style="text-align: center;">↓</div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; padding: 8px; background: #e8f5e9; border-radius: 6px; text-align: center;">
+            <strong>/api/*</strong><br/>
+            <span style="font-size: 12px;">→ Go 后端</span>
+          </div>
+          <div style="flex: 1; padding: 8px; background: #e3f2fd; border-radius: 6px; text-align: center;">
+            <strong>/admin/*</strong><br/>
+            <span style="font-size: 12px;">→ Go 后端 serve 静态文件</span>
+          </div>
+          <div style="flex: 1; padding: 8px; background: #f3e5f5; border-radius: 6px; text-align: center;">
+            <strong>/model/*</strong><br/>
+            <span style="font-size: 12px;">→ 直调模型 API</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>具体调整</h3>
+  <ul>
+    <li><strong>Higress</strong>：统一入口，处理 HTTPS、路由、限流、AI 插件</li>
+    <li><strong>Go 后端</strong>：除业务 API 外，同时 serve <code>/admin</code> 路径下的管理后台静态文件（Vue3 build 产物）</li>
+    <li><strong>去掉 Nginx</strong>：静态文件由 Go 的 <code>http.FileServer</code> 提供，生产环境足够</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>好处</h3>
+  <ul>
+    <li>少跑一个容器，节省约 20~30MB 内存</li>
+    <li>配置更少，部署更简单</li>
+    <li>Higress 的 AI 插件（prompt 审计、内容安全）可以直接作用于所有流量</li>
+  </ul>
+</div>

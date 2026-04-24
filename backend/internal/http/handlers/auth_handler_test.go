@@ -14,7 +14,7 @@ func TestLoginReturnsTokenAndUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	r := gin.New()
 	// register handler
-	r.POST("/api/auth/login", LoginHandler)
+	r.POST("/api/auth/login", LoginHandler("test-secret"))
 
 	reqBody := `{"code":"mock-wechat-code"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(reqBody))

@@ -1,0 +1,122 @@
+<h2>计费流程 V2（修正版）</h2>
+<p class="subtitle">审核失败扣费，模型失败不扣费，3次违规封禁10分钟</p>
+
+<div class="section">
+  <h3>文生图流程</h3>
+  <div class="mockup">
+    <div class="mockup-header">Text-to-Image Flow</div>
+    <div class="mockup-body">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 8px; background: #e3f2fd; border-radius: 6px;">
+          <strong>1. 提交 prompt + 风格</strong><br/>
+          <span style="font-size: 12px;">前端传入参数</span>
+        </div>
+        <div style="text-align: center;">↓</div>
+        <div style="padding: 8px; background: #fff3e0; border-radius: 6px;">
+          <strong>2. 检查封禁状态 + 额度</strong><br/>
+          <span style="font-size: 12px;">是否处于10分钟封禁期？免费额度/余额是否足够？</span>
+        </div>
+        <div style="text-align: center;">↓ 通过</div>
+        <div style="padding: 8px; background: #e8f5e9; border-radius: 6px;">
+          <strong>3. 创建 generation 记录（status = generating）</strong><br/>
+          <span style="font-size: 12px;">锁定用户并发</span>
+        </div>
+        <div style="text-align: center;">↓</div>
+        <div style="padding: 8px; background: #e3f2fd; border-radius: 6px;">
+          <strong>4. 调用模型 API 生成</strong><br/>
+          <span style="font-size: 12px;">3~10s，此处已产生实际成本</span>
+        </div>
+        <div style="text-align: center;">↓</div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; padding: 8px; background: #ffebee; border-radius: 6px; text-align: center;">
+            <strong>模型失败/超时</strong><br/>
+            <span style="font-size: 12px;">status = failed<br/><strong>不扣费</strong></span>
+          </div>
+          <div style="flex: 1; padding: 8px; background: #e8f5e9; border-radius: 6px; text-align: center;">
+            <strong>模型成功</strong><br/>
+            <span style="font-size: 12px;">进入审核</span>
+          </div>
+        </div>
+        <div style="text-align: center;">↓</div>
+        <div style="padding: 8px; background: #fff3e0; border-radius: 6px;">
+          <strong>5. 同步审核结果图</strong><br/>
+          <span style="font-size: 12px;">~300ms</span>
+        </div>
+        <div style="text-align: center;">↓</div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; padding: 8px; background: #e8f5e9; border-radius: 6px; text-align: center;">
+            <strong>审核通过</strong><br/>
+            <span style="font-size: 12px;">扣费 → 记流水<br/>status = success<br/>返回图片</span>
+          </div>
+          <div style="flex: 1; padding: 8px; background: #ffebee; border-radius: 6px; text-align: center;">
+            <strong>审核不通过</strong><br/>
+            <span style="font-size: 12px;"><strong>扣费</strong> → 记流水<br/>status = audit_rejected<br/>返回原因给用户<br/>审核失败计数 +1</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>图生图流程</h3>
+  <div class="mockup">
+    <div class="mockup-header">Image-to-Image Flow</div>
+    <div class="mockup-body">
+      <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div style="padding: 8px; background: #e3f2fd; border-radius: 6px;">
+          <strong>1. 用户上传原图到 COS</strong>
+        </div>
+        <div style="text-align: center;">↓</div>
+        <div style="padding: 8px; background: #fff3e0; border-radius: 6px;">
+          <strong>2. 同步审核原图</strong><br/>
+          <span style="font-size: 12px;">~200ms</span>
+        </div>
+        <div style="text-align: center;">↓</div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; padding: 8px; background: #ffebee; border-radius: 6px; text-align: center;">
+            <strong>原图审核不通过</strong><br/>
+            <span style="font-size: 12px;">返回错误<br/>不调用模型<br/>计数 +1<br/><strong>不扣费</strong></span>
+          </div>
+          <div style="flex: 1; padding: 8px; background: #e8f5e9; border-radius: 6px; text-align: center;">
+            <strong>原图审核通过</strong><br/>
+            <span style="font-size: 12px;">进入生成流程</span>
+          </div>
+        </div>
+        <div style="text-align: center;">↓ 后续同文生图</div>
+        <div style="padding: 8px; background: #e3f2fd; border-radius: 6px; text-align: center;">
+          <span style="font-size: 12px;">检查额度 → 生成 → 审核结果图 → 通过扣费/不通过扣费+显示原因</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>惩罚机制</h3>
+  <div class="mockup">
+    <div class="mockup-body">
+      <ul>
+        <li>用户每次审核不通过（原图或结果图），计数 +1</li>
+        <li>累计达到 <strong>3 次</strong>，触发 <strong>10 分钟封禁</strong></li>
+        <li>封禁期间：禁止上传原图、禁止提交任何生成请求</li>
+        <li>封禁记录写入数据库，10 分钟后自动解封</li>
+        <li>解封后计数清零</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>数据库补充：audit_bans（审核封禁记录表）</h3>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px; overflow-x: auto;">
+id              BIGINT PK AUTOINCREMENT
+user_id         BIGINT NOT NULL REFERENCES users(id)
+reason          VARCHAR(255) NOT NULL           -- 'audit_rejected_3_times'
+banned_at       TIMESTAMP DEFAULT NOW()
+expires_at      TIMESTAMP NOT NULL              -- banned_at + 10 minutes
+is_active       BOOLEAN DEFAULT TRUE
+created_at      TIMESTAMP DEFAULT NOW()
+  </pre>
+  <p><strong>说明：</strong> 查询时检查 user_id 是否有 is_active = true 且 expires_at > now() 的记录。</p>
+</div>

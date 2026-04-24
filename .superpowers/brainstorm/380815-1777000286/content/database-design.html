@@ -1,0 +1,94 @@
+<h2>数据库设计</h2>
+<p class="subtitle">PostgreSQL 核心表结构</p>
+
+<div class="section">
+  <h3>1. users（用户表）</h3>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px; overflow-x: auto;">
+id              BIGINT PK AUTOINCREMENT
+openid          VARCHAR(64)  UNIQUE NOT NULL   -- 微信 openid
+unionid         VARCHAR(64)  NULL              -- 微信 unionid（跨应用识别）
+nickname        VARCHAR(64)  NULL              -- 微信昵称
+avatar_url      VARCHAR(255) NULL              -- 微信头像 URL
+balance         DECIMAL(10,2) DEFAULT 0.00     -- 余额（元）
+free_quota      INT DEFAULT 3                  -- 剩余免费额度
+created_at      TIMESTAMP DEFAULT NOW()
+updated_at      TIMESTAMP DEFAULT NOW()
+  </pre>
+  <p><strong>索引：</strong> openid（唯一），created_at</p>
+</div>
+
+<div class="section">
+  <h3>2. generations（生成记录表）</h3>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px; overflow-x: auto;">
+id              BIGINT PK AUTOINCREMENT
+user_id         BIGINT NOT NULL REFERENCES users(id)
+type            VARCHAR(16) NOT NULL           -- 'text2img' | 'img2img'
+prompt          TEXT NOT NULL                   -- 用户输入的 prompt
+style           VARCHAR(32) DEFAULT 'default'  -- 风格
+cost            DECIMAL(10,2) NOT NULL          -- 本次扣费金额
+status          VARCHAR(16) DEFAULT 'pending'  -- 'pending' | 'generating' | 'success' | 'failed' | 'audit_rejected'
+result_url      VARCHAR(255) NULL               -- 生成结果 COS URL
+source_url      VARCHAR(255) NULL               -- 图生图时的原图 URL
+width           INT DEFAULT 1024
+height          INT DEFAULT 1024
+deleted_at      TIMESTAMP NULL                  -- 软删除标记
+created_at      TIMESTAMP DEFAULT NOW()
+  </pre>
+  <p><strong>索引：</strong> user_id + deleted_at（历史列表），status + created_at（统计），created_at</p>
+</div>
+
+<div class="section">
+  <h3>3. orders（充值订单表）</h3>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px; overflow-x: auto;">
+id              BIGINT PK AUTOINCREMENT
+user_id         BIGINT NOT NULL REFERENCES users(id)
+order_no        VARCHAR(64) UNIQUE NOT NULL     -- 内部订单号
+wx_order_no     VARCHAR(64) UNIQUE NULL         -- 微信订单号（支付成功后回填）
+amount          DECIMAL(10,2) NOT NULL          -- 支付金额（元）
+bonus           DECIMAL(10,2) DEFAULT 0.00      -- 赠送金额
+status          VARCHAR(16) DEFAULT 'pending'  -- 'pending' | 'paid' | 'failed'
+paid_at         TIMESTAMP NULL
+created_at      TIMESTAMP DEFAULT NOW()
+  </pre>
+  <p><strong>索引：</strong> order_no（唯一），wx_order_no（唯一），user_id + status</p>
+</div>
+
+<div class="section">
+  <h3>4. transactions（余额流水表）</h3>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px; overflow-x: auto;">
+id              BIGINT PK AUTOINCREMENT
+user_id         BIGINT NOT NULL REFERENCES users(id)
+type            VARCHAR(16) NOT NULL           -- 'recharge' | 'consume' | 'bonus'
+amount          DECIMAL(10,2) NOT NULL          -- 变动金额（正为充值，负为消费）
+balance_after   DECIMAL(10,2) NOT NULL          -- 变动后余额
+reference_id    BIGINT NULL                     -- 关联订单 ID 或生成记录 ID
+remark          VARCHAR(255) NULL
+created_at      TIMESTAMP DEFAULT NOW()
+  </pre>
+  <p><strong>索引：</strong> user_id + created_at（流水列表），type + created_at（统计）</p>
+  <p><strong>说明：</strong> 流水表只增不改，用于对账和审计。</p>
+</div>
+
+<div class="section">
+  <h3>5. system_configs（系统配置表）</h3>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px; overflow-x: auto;">
+id              BIGINT PK AUTOINCREMENT
+config_key      VARCHAR(64) UNIQUE NOT NULL     -- 'unit_price' | 'free_quota' | 'upload_limit_mb' | 'recharge_packages'
+config_value    TEXT NOT NULL                   -- JSON 或字符串
+updated_at      TIMESTAMP DEFAULT NOW()
+updated_by      BIGINT NULL REFERENCES users(id) -- 管理员 ID
+  </pre>
+  <p><strong>说明：</strong> 启动时加载到内存，管理后台修改后通知后端热刷新。</p>
+</div>
+
+<div class="section">
+  <h3>6. admin_users（管理员表）</h3>
+  <pre style="background: #f5f5f5; padding: 12px; border-radius: 8px; overflow-x: auto;">
+id              BIGINT PK AUTOINCREMENT
+username        VARCHAR(32) UNIQUE NOT NULL
+password_hash   VARCHAR(255) NOT NULL           -- bcrypt
+role            VARCHAR(16) DEFAULT 'admin'    -- 'admin' | 'super_admin'
+last_login_at   TIMESTAMP NULL
+created_at      TIMESTAMP DEFAULT NOW()
+  </pre>
+</div>

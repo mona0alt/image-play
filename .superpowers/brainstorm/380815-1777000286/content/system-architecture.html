@@ -1,0 +1,55 @@
+<h2>系统架构总览（方案 A）</h2>
+<p class="subtitle">单体 All-in-One，轻量服务器部署</p>
+
+<div class="mockup">
+  <div class="mockup-header">System Architecture</div>
+  <div class="mockup-body">
+    <div style="display: flex; flex-direction: column; gap: 12px;">
+      <!-- 用户层 -->
+      <div style="padding: 12px; background: #e3f2fd; border-radius: 8px; text-align: center;">
+        <strong>微信小程序（用户端）</strong><br/>
+        <span style="font-size: 12px;">微信登录 · 文生图/图生图 · 充值 · 历史记录 · 分享</span>
+      </div>
+      <div style="text-align: center;">↓ HTTPS</div>
+      <!-- 网关层 -->
+      <div style="padding: 12px; background: #fff3e0; border-radius: 8px; text-align: center;">
+        <strong>Higress（AI 网关）</strong><br/>
+        <span style="font-size: 12px;">统一路由 · 限流 · 鉴权 · 多模型代理</span>
+      </div>
+      <div style="text-align: center;">↓ 内部调用</div>
+      <!-- 应用层 -->
+      <div style="padding: 12px; background: #e8f5e9; border-radius: 8px; text-align: center;">
+        <strong>Go 后端服务</strong><br/>
+        <span style="font-size: 12px;">用户模块 · 支付模块 · 图片生成模块 · 历史记录模块 · 管理后台</span>
+      </div>
+      <div style="text-align: center;">↓</div>
+      <!-- 数据层 -->
+      <div style="display: flex; gap: 12px;">
+        <div style="flex: 1; padding: 12px; background: #fce4ec; border-radius: 8px; text-align: center;">
+          <strong>PostgreSQL</strong><br/>
+          <span style="font-size: 12px;">用户 · 订单 · 余额 · 图片记录</span>
+        </div>
+        <div style="flex: 1; padding: 12px; background: #f3e5f5; border-radius: 8px; text-align: center;">
+          <strong>腾讯云 COS</strong><br/>
+          <span style="font-size: 12px;">原图 · 生成图片 · 缩略图</span>
+        </div>
+      </div>
+      <div style="text-align: center;">↑ 调用</div>
+      <!-- 外部服务 -->
+      <div style="padding: 12px; background: #f5f5f5; border-radius: 8px; text-align: center; border: 2px dashed #ccc;">
+        <strong>外部服务</strong><br/>
+        <span style="font-size: 12px;">微信支付 · 微信登录 · 第三方模型 API（Replicate/通义万相/GPT 等）</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h3>关键设计决策</h3>
+  <ul>
+    <li><strong>Higress 作为统一网关：</strong>小程序只对接 Higress，Higress 再路由到 Go 后端或直调模型 API。好处是模型切换不影响小程序代码。</li>
+    <li><strong>图片直传 COS：</strong>小程序拿到临时签名后直传 COS，不经过 Go 后端，减轻服务器带宽压力。</li>
+    <li><strong>同步生成 + 超时兜底：</strong>单次生成走同步 HTTP（小程序体验更好），设置 60s 超时；超时后前端转轮询状态。</li>
+    <li><strong>软删除 + 永久存储：</strong>COS 图片不物理删除，数据库标记 deleted_at，保留法律追溯能力。</li>
+  </ul>
+</div>

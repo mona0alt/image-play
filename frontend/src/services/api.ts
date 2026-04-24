@@ -8,7 +8,7 @@ interface ApiResponse<T> {
   errMsg: string
 }
 
-function request<T>(options: {
+export function request<T>(options: {
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   data?: string | Record<string, unknown> | unknown[]

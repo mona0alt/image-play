@@ -1,44 +1,51 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
+import { createOrder, getClientConfig, getHistory, getMe, getPackages, mapHistoryItem } from '../../services/api'
+import { useConfigStore } from '../../store/config'
 import { useUserStore } from '../../store/user'
-import { getMe, getPackages, createOrder, getHistory, mapHistoryItem } from '../../services/api'
-import { isGenerationPending } from '../../utils/generation'
+import { buildProfileViewModel } from './view-model'
 
+const configStore = useConfigStore()
 const userStore = useUserStore()
 const packagesList = ref<{ code: string; title: string; price: string; count: number }[]>([])
-const history = ref<ReturnType<typeof mapHistoryItem>[]>([])
+const historyItems = ref<ReturnType<typeof mapHistoryItem>[]>([])
 const loading = ref(false)
 
-onMounted(async () => {
-  if (!userStore.profile) {
-    try {
-      const profile = await getMe()
-      userStore.setProfile(profile)
-    } catch (e) {
-      // auth middleware will redirect
-    }
-  }
-  try {
-    const res = await getPackages()
-    packagesList.value = res.packages || []
-  } catch (e) {
-    // ignore
-  }
-  try {
-    const res = await getHistory()
-    history.value = (res.items || []).map(mapHistoryItem)
-  } catch (e) {
-    // ignore
-  }
-})
+const model = computed(() => buildProfileViewModel({
+  profile: userStore.profile,
+  packages: packagesList.value,
+  historyItems: historyItems.value,
+  sceneOrder: configStore.clientConfig?.scene_order ?? ['portrait', 'festival', 'invitation'],
+}))
 
-async function handleBuy(pkgCode: string) {
+async function loadProfilePage() {
+  try {
+    const [profile, packagesRes, historyRes] = await Promise.all([
+      userStore.profile ? Promise.resolve(userStore.profile) : getMe(),
+      getPackages(),
+      getHistory(),
+    ])
+    if (!userStore.profile) {
+      userStore.setProfile(profile)
+    }
+    if (!configStore.clientConfig) {
+      configStore.setClientConfig(await getClientConfig())
+    }
+    packagesList.value = packagesRes.packages || []
+    historyItems.value = (historyRes.items || []).map(mapHistoryItem)
+  } catch (e) {
+    uni.showToast({ title: '个人页加载失败', icon: 'none' })
+  }
+}
+
+async function handleBuy(packageCode: string) {
   loading.value = true
   try {
-    const res = await createOrder(pkgCode)
+    const order = await createOrder(packageCode)
     uni.showModal({
       title: '模拟支付',
-      content: `订单号: ${res.order_no}\n金额: ${res.amount}`,
+      content: `订单号: ${order.order_no}\n金额: ${order.amount}`,
       showCancel: false,
     })
   } catch (e: any) {
@@ -48,153 +55,164 @@ async function handleBuy(pkgCode: string) {
   }
 }
 
-function formatDate(ts: string) {
-  const d = new Date(Number(ts) * 1000)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+function openResult(id: number) {
+  uni.navigateTo({ url: `/pages/result/index?generation_id=${id}` })
 }
+
+function openScene(sceneKey: string) {
+  uni.reLaunch({ url: `/pages/scene/index?scene_key=${sceneKey}` })
+}
+
+onMounted(loadProfilePage)
 </script>
 
 <template>
-  <view class="profile">
-    <view class="card">
-      <text class="label">余额</text>
-      <text class="balance">{{ userStore.profile?.balance ?? 0 }}</text>
-      <text class="label">免费额度</text>
-      <text class="quota">{{ userStore.profile?.free_quota ?? 0 }}</text>
-    </view>
+  <GalleryPageShell active-tab="profile" title="我的作品室" subtitle="Profile">
+    <view class="profile-page">
+      <view class="profile-page__hero">
+        <text class="profile-page__balance">{{ model.balance }}</text>
+        <text class="profile-page__meta">余额</text>
+        <text class="profile-page__quota">免费额度 {{ model.freeQuota }}</text>
+      </view>
 
-    <view class="section">
-      <text class="section-title">充值套餐</text>
-      <view v-for="pkg in packagesList" :key="pkg.code" class="pkg-card">
-        <view class="pkg-info">
-          <text class="pkg-title">{{ pkg.title }}</text>
-          <text class="pkg-price">¥{{ pkg.price }}</text>
-          <text class="pkg-count">{{ pkg.count }} 次</text>
+      <view v-if="model.recentWorks.length > 0" class="profile-page__section">
+        <text class="profile-page__eyebrow">Recent Works</text>
+        <scroll-view scroll-x class="profile-page__recent-list">
+          <view
+            v-for="item in model.recentWorks"
+            :key="item.id"
+            class="profile-page__recent-item"
+            @click="openResult(item.id)"
+          >
+            <image class="profile-page__recent-image" :src="item.resultUrl" mode="aspectFill" />
+          </view>
+        </scroll-view>
+      </view>
+
+      <view class="profile-page__section">
+        <text class="profile-page__eyebrow">Quick Scenes</text>
+        <view class="profile-page__quick-scenes">
+          <view
+            v-for="scene in model.quickScenes"
+            :key="scene.key"
+            class="profile-page__quick-scene"
+            @click="openScene(scene.key)"
+          >
+            <text>{{ scene.name }}</text>
+          </view>
         </view>
-        <button class="buy-btn" :disabled="loading" @click="handleBuy(pkg.code)">购买</button>
       </view>
-    </view>
 
-    <view class="section">
-      <text class="section-title">生成历史</text>
-      <view v-if="history.length === 0" class="empty">暂无记录</view>
-      <view v-for="item in history" :key="item.id" class="history-item">
-        <text class="history-scene">{{ item.sceneKey }} / {{ item.templateKey }}</text>
-        <text class="history-status" :class="{ pending: isGenerationPending(item.status) }">{{ item.status }}</text>
-        <text class="history-date">{{ formatDate(item.createdAt) }}</text>
-        <image v-if="item.resultUrl" class="history-img" :src="item.resultUrl" mode="aspectFill" />
+      <view class="profile-page__section">
+        <text class="profile-page__eyebrow">Packages</text>
+        <view
+          v-for="pkg in model.packages"
+          :key="pkg.code"
+          class="profile-page__package"
+        >
+          <view>
+            <text class="profile-page__package-title">{{ pkg.title }}</text>
+            <text class="profile-page__package-meta">¥{{ pkg.price }} / {{ pkg.count }} 次</text>
+          </view>
+          <button :disabled="loading" @click="handleBuy(pkg.code)">{{ pkg.actionLabel }}</button>
+        </view>
       </view>
     </view>
-  </view>
+  </GalleryPageShell>
 </template>
 
 <style scoped>
-.profile {
-  padding: 24rpx;
+.profile-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
 }
-.card {
-  background: #fff;
-  border-radius: 16rpx;
-  padding: 32rpx;
-  margin-bottom: 24rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
+
+.profile-page__hero {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 36rpx 28rpx;
+  border-radius: 32rpx;
+  background: linear-gradient(155deg, #171717 0%, #5b514b 100%);
+  color: #ffffff;
 }
-.label {
-  display: block;
-  font-size: 26rpx;
-  color: #666;
-  margin-top: 12rpx;
+
+.profile-page__balance {
+  font-size: 56rpx;
+  font-weight: 700;
 }
-.balance {
-  display: block;
-  font-size: 48rpx;
-  font-weight: bold;
-  color: #333;
+
+.profile-page__meta,
+.profile-page__quota {
+  font-size: 24rpx;
 }
-.quota {
-  display: block;
-  font-size: 32rpx;
-  color: #007aff;
+
+.profile-page__section {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
-.section {
-  margin-bottom: 32rpx;
+
+.profile-page__eyebrow {
+  font-size: 20rpx;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gallery-muted);
 }
-.section-title {
-  display: block;
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 16rpx;
+
+.profile-page__recent-list {
+  white-space: nowrap;
 }
-.pkg-card {
-  background: #fff;
-  border-radius: 12rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
+
+.profile-page__recent-item {
+  display: inline-flex;
+  width: 160rpx;
+  height: 160rpx;
+  margin-right: 16rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+}
+
+.profile-page__recent-image {
+  width: 100%;
+  height: 100%;
+}
+
+.profile-page__quick-scenes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16rpx;
+}
+
+.profile-page__quick-scene,
+.profile-page__package {
+  padding: 22rpx;
+  border-radius: 24rpx;
+  background: var(--gallery-surface);
+  border: 1rpx solid var(--gallery-border);
+}
+
+.profile-page__quick-scene {
+  text-align: center;
+}
+
+.profile-page__package {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
 }
-.pkg-title {
+
+.profile-page__package-title {
   display: block;
   font-size: 30rpx;
-  font-weight: bold;
+  font-weight: 600;
 }
-.pkg-price {
+
+.profile-page__package-meta {
   display: block;
-  font-size: 28rpx;
-  color: #e64340;
-}
-.pkg-count {
-  display: block;
+  margin-top: 6rpx;
   font-size: 24rpx;
-  color: #999;
-}
-.buy-btn {
-  background: #007aff;
-  color: #fff;
-  font-size: 28rpx;
-  padding: 12rpx 24rpx;
-  border-radius: 8rpx;
-}
-.empty {
-  text-align: center;
-  color: #999;
-  padding: 48rpx;
-}
-.history-item {
-  background: #fff;
-  border-radius: 12rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.04);
-}
-.history-scene {
-  display: block;
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #333;
-}
-.history-status {
-  display: block;
-  font-size: 26rpx;
-  color: #666;
-  margin-top: 8rpx;
-}
-.history-status.pending {
-  color: #007aff;
-}
-.history-date {
-  display: block;
-  font-size: 24rpx;
-  color: #999;
-  margin-top: 4rpx;
-}
-.history-img {
-  width: 200rpx;
-  height: 200rpx;
-  margin-top: 12rpx;
-  border-radius: 8rpx;
+  color: var(--gallery-muted);
 }
 </style>

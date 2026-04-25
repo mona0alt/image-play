@@ -7,15 +7,21 @@ export function buildProfileViewModel(input: {
   historyItems: { id: number; sceneKey: string; templateKey: string; status: string; resultUrl: string; createdAt: string }[]
   sceneOrder: string[]
 }) {
+  const recentWorks = takeRecentSuccessItems(input.historyItems, 4)
+
   return {
     accountTitle: '我的作品室',
     balance: String(input.profile?.balance ?? 0),
     freeQuota: String(input.profile?.free_quota ?? 0),
-    recentWorks: takeRecentSuccessItems(input.historyItems, 4),
+    recentWorks,
     quickScenes: input.sceneOrder.slice(0, 3).map((key) => buildScenePresentation(key)),
     packages: input.packages.map((item) => ({
       ...item,
       actionLabel: '购买',
     })),
+    historyEntry: {
+      thumbnails: recentWorks.map((w) => w.resultUrl).slice(0, 3),
+      totalCount: input.historyItems.length,
+    },
   }
 }

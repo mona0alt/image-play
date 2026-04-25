@@ -43,11 +43,11 @@ func DashboardMetricsHandler(db *sql.DB) gin.HandlerFunc {
 			metrics.SceneClicks[sceneKey] = count
 		}
 
-		// Generation success: COUNT of generations WHERE status = 'completed' GROUP BY scene_key
+		// Generation success: COUNT of generations WHERE status = 'success' GROUP BY scene_key
 		rows, err = db.QueryContext(c.Request.Context(), `
 			SELECT scene_key, COUNT(*)
 			FROM generations
-			WHERE status = 'completed'
+			WHERE status = 'success'
 			GROUP BY scene_key
 		`)
 		if err != nil {

@@ -5,9 +5,12 @@ import (
 	"errors"
 	"strings"
 	"time"
+
+	"image-play/internal/domain/scenes"
 )
 
 var ErrActiveGenerationExists = errors.New("active generation already exists")
+var ErrTemplateNotAvailable = errors.New("template not available")
 
 var activeStatuses = map[string]bool{
 	"queued":          true,
@@ -48,15 +51,32 @@ type Repository interface {
 	ListByUser(ctx context.Context, userID int64) ([]*Generation, error)
 }
 
-type Service struct {
-	repo Repository
+type TemplateLookup interface {
+	GetActiveTemplate(ctx context.Context, sceneKey, templateKey string) (*scenes.Template, error)
 }
 
-func NewService(repo Repository) *Service {
-	return &Service{repo: repo}
+type Service struct {
+	repo      Repository
+	templates TemplateLookup
+}
+
+func NewService(repo Repository, templates TemplateLookup) *Service {
+	return &Service{repo: repo, templates: templates}
 }
 
 func (s *Service) CreateGeneration(ctx context.Context, input CreateGenerationInput) (int64, error) {
+	if s.templates == nil {
+		return 0, errors.New("template lookup not configured")
+	}
+
+	template, err := s.templates.GetActiveTemplate(ctx, input.SceneKey, input.TemplateKey)
+	if err != nil {
+		return 0, err
+	}
+	if template == nil {
+		return 0, ErrTemplateNotAvailable
+	}
+
 	now := time.Now()
 	g := &Generation{
 		UserID:          input.UserID,
@@ -87,4 +107,3 @@ func isUniqueViolation(err error) bool {
 	msg := err.Error()
 	return strings.Contains(msg, "23505") || strings.Contains(msg, "unique constraint")
 }
-

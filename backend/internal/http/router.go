@@ -25,9 +25,11 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 	billingSvc := billing.NewService(billingRepo)
 	userRepo := postgres.NewUserRepo(db)
 	userSvc := user.NewService(userRepo)
+	templateRepo := postgres.NewSceneTemplateRepo(db)
 
 	r.POST("/api/auth/login", handlers.LoginHandler(jwtSecret, userSvc))
 	r.GET("/api/configs/client", handlers.ClientConfigHandler)
+	r.GET("/api/scenes/:scene_key/templates", handlers.ListSceneTemplatesHandler(templateRepo))
 
 	authorized := r.Group("/api")
 	authorized.Use(middleware.AuthMiddleware(jwtSecret))
@@ -38,7 +40,7 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 	authorized.POST("/assets/upload-intent", handlers.UploadIntentHandler(assetSvc))
 
 	genRepo := postgres.NewGenerationRepo(db)
-	genSvc := generation.NewService(genRepo)
+	genSvc := generation.NewService(genRepo, templateRepo)
 	authorized.POST("/generations", handlers.CreateGenerationHandler(genSvc))
 	authorized.GET("/packages", handlers.PackagesHandler(billingSvc))
 	authorized.POST("/orders", handlers.CreateOrderHandler(billingSvc))

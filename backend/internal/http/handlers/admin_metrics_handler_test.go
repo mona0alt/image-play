@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/stretchr/testify/require"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDashboardReturnsSceneConversionMetrics(t *testing.T) {
@@ -59,8 +59,8 @@ func TestDashboardMetricsWithData(t *testing.T) {
 	_, err = db.Exec(`
 		INSERT INTO generations (user_id, client_request_id, scene_key, template_key, fields, status, created_at, updated_at)
 		VALUES
-			(1, 'req-1', 'portrait', 'office-pro', '{}', 'completed', datetime('now'), datetime('now')),
-			(1, 'req-2', 'portrait', 'office-pro', '{}', 'completed', datetime('now'), datetime('now')),
+			(1, 'req-1', 'portrait', 'office-pro', '{}', 'success', datetime('now'), datetime('now')),
+			(1, 'req-2', 'portrait', 'office-pro', '{}', 'success', datetime('now'), datetime('now')),
 			(2, 'req-3', 'invitation', 'wedding-classic', '{}', 'failed', datetime('now'), datetime('now'))
 	`)
 	require.NoError(t, err)
@@ -96,6 +96,34 @@ func TestDashboardMetricsWithData(t *testing.T) {
 	require.Equal(t, 2, resp.GenerationSuccess["portrait"])
 	require.Equal(t, 0, resp.GenerationSuccess["invitation"])
 	require.Equal(t, 2, len(resp.Payments))
+}
+
+func TestDashboardMetricsCountsSuccessGenerations(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	db := setupTestDB(t)
+	defer db.Close()
+
+	_, err := db.Exec(`
+		INSERT INTO generations (user_id, client_request_id, scene_key, template_key, fields, status, created_at, updated_at)
+		VALUES
+			(1, 'req-1', 'portrait', 'office-pro', '{}', 'success', datetime('now'), datetime('now')),
+			(1, 'req-2', 'portrait', 'office-pro', '{}', 'completed', datetime('now'), datetime('now')),
+			(2, 'req-3', 'portrait', 'office-pro', '{}', 'failed', datetime('now'), datetime('now'))
+	`)
+	require.NoError(t, err)
+
+	r := gin.New()
+	r.GET("/api/admin/metrics", func(c *gin.Context) {
+		DashboardMetricsHandler(db)(c)
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/api/admin/metrics", nil)
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+	require.Contains(t, w.Body.String(), `"portrait":1`)
 }
 
 func setupTestDB(t *testing.T) *sql.DB {

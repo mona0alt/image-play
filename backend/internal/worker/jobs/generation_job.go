@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"sort"
 	"time"
 
 	"image-play/internal/domain/billing"
 	"image-play/internal/domain/generation"
+	"image-play/internal/domain/scenes"
 )
 
 type ModelClient interface {
@@ -47,10 +47,32 @@ type GenerationJob struct {
 	modelClient    ModelClient
 	auditClient    AuditClient
 	generationRepo generation.Repository
+	templateRepo   generation.TemplateLookup
 	billingSvc     *billing.Service
 }
 
-func NewGenerationJob(repo generation.Repository, model ModelClient, audit AuditClient, billingSvc *billing.Service) *GenerationJob {
+func NewGenerationJob(repo generation.Repository, args ...interface{}) *GenerationJob {
+	var (
+		templateRepo generation.TemplateLookup
+		model        ModelClient
+		audit        AuditClient
+		billingSvc   *billing.Service
+	)
+
+	switch len(args) {
+	case 3:
+		model, _ = args[0].(ModelClient)
+		audit, _ = args[1].(AuditClient)
+		billingSvc, _ = args[2].(*billing.Service)
+	case 4:
+		templateRepo, _ = args[0].(generation.TemplateLookup)
+		model, _ = args[1].(ModelClient)
+		audit, _ = args[2].(AuditClient)
+		billingSvc, _ = args[3].(*billing.Service)
+	default:
+		panic("NewGenerationJob expects either legacy(repo, model, audit, billingSvc) or repo, templateRepo, model, audit, billingSvc")
+	}
+
 	if model == nil {
 		model = &MockModelClient{}
 	}
@@ -61,6 +83,7 @@ func NewGenerationJob(repo generation.Repository, model ModelClient, audit Audit
 		modelClient:    model,
 		auditClient:    audit,
 		generationRepo: repo,
+		templateRepo:   templateRepo,
 		billingSvc:     billingSvc,
 	}
 }
@@ -68,8 +91,11 @@ func NewGenerationJob(repo generation.Repository, model ModelClient, audit Audit
 func (j *GenerationJob) Execute(ctx context.Context, g *generation.Generation) error {
 	log.Printf("[GenerationJob] executing generation %d", g.ID)
 
-	// Build prompt from fields (MVP: simple concatenation)
-	prompt := buildPrompt(g)
+	prompt, err := j.buildPrompt(ctx, g)
+	if err != nil {
+		_ = j.generationRepo.UpdateResult(ctx, g.ID, "failed", "")
+		return err
+	}
 
 	imageURL, err := j.modelClient.Generate(ctx, prompt)
 	if err != nil {
@@ -105,18 +131,27 @@ func (j *GenerationJob) Execute(ctx context.Context, g *generation.Generation) e
 	return nil
 }
 
-func buildPrompt(g *generation.Generation) string {
-	if g.Prompt != "" {
-		return g.Prompt
+func (j *GenerationJob) buildPrompt(ctx context.Context, g *generation.Generation) (string, error) {
+	if j.templateRepo == nil {
+		return scenes.BuildPrompt(scenes.BuildInput{
+			SceneKey:    g.SceneKey,
+			TemplateKey: g.TemplateKey,
+			Fields:      g.Fields,
+		}), nil
 	}
-	prompt := fmt.Sprintf("scene=%s template=%s", g.SceneKey, g.TemplateKey)
-	keys := make([]string, 0, len(g.Fields))
-	for k := range g.Fields {
-		keys = append(keys, k)
+
+	template, err := j.templateRepo.GetActiveTemplate(ctx, g.SceneKey, g.TemplateKey)
+	if err != nil {
+		return "", fmt.Errorf("load active template: %w", err)
 	}
-	sort.Strings(keys)
-	for _, k := range keys {
-		prompt += fmt.Sprintf(" %s=%s", k, g.Fields[k])
+	if template == nil {
+		return "", fmt.Errorf("template not available")
 	}
-	return prompt
+
+	return scenes.BuildPrompt(scenes.BuildInput{
+		SceneKey:    g.SceneKey,
+		TemplateKey: g.TemplateKey,
+		Preset:      template.PromptPreset,
+		Fields:      g.Fields,
+	}), nil
 }

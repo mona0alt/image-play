@@ -5,6 +5,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"image-play/internal/domain/scenes"
 )
 
 type inMemoryRepo struct {
@@ -18,6 +20,40 @@ func newInMemoryRepo() *inMemoryRepo {
 		generations: make(map[int64]*Generation),
 		nextID:      1,
 	}
+}
+
+type inMemoryTemplateRepo struct {
+	mu        sync.Mutex
+	templates map[string]*scenes.Template
+	err       error
+}
+
+func newInMemoryTemplateRepo() *inMemoryTemplateRepo {
+	return &inMemoryTemplateRepo{
+		templates: make(map[string]*scenes.Template),
+	}
+}
+
+func (r *inMemoryTemplateRepo) Set(template *scenes.Template) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if template == nil {
+		return
+	}
+	r.templates[templateLookupKey(template.SceneKey, template.TemplateKey)] = template
+}
+
+func (r *inMemoryTemplateRepo) GetActiveTemplate(_ context.Context, sceneKey, templateKey string) (*scenes.Template, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.err != nil {
+		return nil, r.err
+	}
+	return r.templates[templateLookupKey(sceneKey, templateKey)], nil
+}
+
+func templateLookupKey(sceneKey, templateKey string) string {
+	return sceneKey + ":" + templateKey
 }
 
 func (r *inMemoryRepo) Create(_ context.Context, g *Generation) error {

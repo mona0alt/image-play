@@ -66,7 +66,7 @@ onMounted(refreshHistory)
 </script>
 
 <template>
-  <GalleryPageShell :title="model.title" subtitle="Generated Artwork">
+  <GalleryPageShell :title="model.title" subtitle="Generated Artwork" active-tab="gallery">
     <EmptyStateCard
       v-if="model.state === 'missing'"
       title="未找到生成记录"

@@ -101,6 +101,19 @@ var migrations = []string{
 	`CREATE INDEX IF NOT EXISTS idx_transactions_generation_id ON transactions(generation_id);`,
 	`CREATE UNIQUE INDEX IF NOT EXISTS idx_transactions_generation_id_unique ON transactions(generation_id);`,
 	`CREATE INDEX IF NOT EXISTS idx_tracking_events_created_at ON tracking_events(created_at);`,
+
+	// Explore feed support
+	`ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(64) DEFAULT '';`,
+	`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500) DEFAULT '';`,
+	`CREATE TABLE IF NOT EXISTS likes (
+		id BIGSERIAL PRIMARY KEY,
+		user_id BIGINT NOT NULL REFERENCES users(id),
+		generation_id BIGINT NOT NULL REFERENCES generations(id),
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE (user_id, generation_id)
+	);`,
+	`CREATE INDEX IF NOT EXISTS idx_likes_generation_id ON likes(generation_id);`,
+	`CREATE INDEX IF NOT EXISTS idx_likes_user_id ON likes(user_id);`,
 }
 
 var seedSQL = []string{

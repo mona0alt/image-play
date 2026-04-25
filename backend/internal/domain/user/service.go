@@ -7,6 +7,8 @@ type User struct {
 	OpenID    string
 	Balance   float64
 	FreeQuota int
+	Nickname  string
+	AvatarURL string
 }
 
 type Repository interface {

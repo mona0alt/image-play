@@ -51,6 +51,7 @@ type Repository interface {
 	UpdateStatus(ctx context.Context, id int64, status string) error
 	UpdateResult(ctx context.Context, id int64, status, resultURL string) error
 	ListByUser(ctx context.Context, userID int64) ([]*Generation, error)
+	ListSuccess(ctx context.Context, page, pageSize int) ([]*Generation, int64, error)
 }
 
 type TemplateLookup interface {

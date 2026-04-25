@@ -20,7 +20,7 @@
       "path": "pages/explore/index",
       "style": {
         "navigationBarTitleText": "发现",
-        "navigationStyle": "custom",
+        "navigationBarBackgroundColor": "#fdf8f8",
         "backgroundColor": "#000000"
       }
     },

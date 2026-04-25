@@ -114,6 +114,49 @@ func (r *GenerationRepo) ListByUser(ctx context.Context, userID int64) ([]*gener
 	return results, rows.Err()
 }
 
+func (r *GenerationRepo) ListSuccess(ctx context.Context, page, pageSize int) ([]*generation.Generation, int64, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 10
+	}
+	offset := (page - 1) * pageSize
+
+	query := `
+		SELECT id, user_id, client_request_id, scene_key, template_key, fields, source_asset_id, status, result_url, prompt, created_at, updated_at
+		FROM generations
+		WHERE status = 'success' AND result_url IS NOT NULL AND result_url != ''
+		ORDER BY created_at DESC
+		LIMIT $1 OFFSET $2
+	`
+	rows, err := r.db.QueryContext(ctx, query, pageSize, offset)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var results []*generation.Generation
+	for rows.Next() {
+		g, err := scanGenerationRows(rows)
+		if err != nil {
+			return nil, 0, err
+		}
+		results = append(results, g)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, err
+	}
+
+	var total int64
+	countQuery := `SELECT COUNT(*) FROM generations WHERE status = 'success' AND result_url IS NOT NULL AND result_url != ''`
+	if err := r.db.QueryRowContext(ctx, countQuery).Scan(&total); err != nil {
+		return nil, 0, err
+	}
+
+	return results, total, nil
+}
+
 func scanGenerationRows(rows *sql.Rows) (*generation.Generation, error) {
 	var g generation.Generation
 	var fieldsRaw []byte

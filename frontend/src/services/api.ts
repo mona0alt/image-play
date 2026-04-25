@@ -153,3 +153,72 @@ export function createGeneration(payload: {
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+export interface ExploreUserDTO {
+  id: string
+  nickname: string
+  avatar_url: string
+}
+
+export interface ExploreItemDTO {
+  id: number
+  user: ExploreUserDTO
+  image_url: string
+  thumbnail_url: string
+  prompt: string
+  scene_key: string
+  like_count: number
+  is_liked: boolean
+  description: string
+  created_at: string
+}
+
+export interface ExploreFeedResponse {
+  items: ExploreItemDTO[]
+  pagination: {
+    page: number
+    page_size: number
+    total: number
+    has_more: boolean
+  }
+}
+
+export function mapExploreItem(dto: ExploreItemDTO) {
+  return {
+    id: dto.id,
+    user: {
+      id: dto.user.id,
+      nickname: dto.user.nickname,
+      avatarUrl: dto.user.avatar_url,
+    },
+    imageUrl: dto.image_url,
+    thumbnailUrl: dto.thumbnail_url,
+    prompt: dto.prompt,
+    sceneKey: dto.scene_key,
+    likeCount: dto.like_count,
+    isLiked: dto.is_liked,
+    description: dto.description,
+    createdAt: dto.created_at,
+  }
+}
+
+export type ExploreItem = ReturnType<typeof mapExploreItem>
+
+export function getExploreFeed(page = 1, pageSize = 10) {
+  return request<ExploreFeedResponse>({
+    url: `/api/explore/feed?page=${page}&page_size=${pageSize}`,
+    method: 'GET',
+  }).then((res) => ({
+    items: res.items.map(mapExploreItem),
+    pagination: res.pagination,
+  }))
+}
+
+export function likeExploreItem(generationId: number, action: 'like' | 'unlike') {
+  return request<{ success: boolean; like_count: number }>({
+    url: '/api/explore/like',
+    method: 'POST',
+    data: { generation_id: generationId, action },
+    headers: { 'Content-Type': 'application/json' },
+  })
+}

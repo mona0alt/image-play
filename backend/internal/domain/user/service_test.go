@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -11,6 +12,8 @@ type mockUserRepo struct {
 	nextID        int64
 	usersByID     map[int64]*User
 	usersByOpenID map[string]*User
+	createErr     error
+	onCreate      func(*User)
 }
 
 func newMockUserRepo() *mockUserRepo {
@@ -42,6 +45,13 @@ func (r *mockUserRepo) GetByOpenID(_ context.Context, openID string) (*User, err
 }
 
 func (r *mockUserRepo) Create(_ context.Context, user *User) error {
+	if r.onCreate != nil {
+		r.onCreate(user)
+	}
+	if r.createErr != nil {
+		return r.createErr
+	}
+
 	user.ID = r.nextID
 	r.nextID++
 
@@ -79,4 +89,27 @@ func TestGetOrCreateByMockCodeReusesExistingUser(t *testing.T) {
 	require.False(t, created)
 	require.Equal(t, int64(42), user.ID)
 	require.Equal(t, 2, user.FreeQuota)
+}
+
+func TestGetOrCreateByMockCodeReusesUserWhenCreateLosesRace(t *testing.T) {
+	repo := newMockUserRepo()
+	repo.createErr = errors.New("duplicate key value violates unique constraint")
+	repo.onCreate = func(user *User) {
+		repo.usersByID[99] = &User{
+			ID:        99,
+			OpenID:    user.OpenID,
+			Balance:   0,
+			FreeQuota: 3,
+		}
+		repo.usersByOpenID[user.OpenID] = repo.usersByID[99]
+	}
+	svc := NewService(repo)
+
+	account, created, err := svc.GetOrCreateByMockCode(context.Background(), "wx-code-1")
+
+	require.NoError(t, err)
+	require.False(t, created)
+	require.Equal(t, int64(99), account.ID)
+	require.Equal(t, "mock-openid-wx-code-1", account.OpenID)
+	require.Equal(t, 3, account.FreeQuota)
 }

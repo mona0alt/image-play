@@ -40,6 +40,13 @@ func (s *Service) GetOrCreateByMockCode(ctx context.Context, code string) (*User
 		FreeQuota: 3,
 	}
 	if err := s.repo.Create(ctx, account); err != nil {
+		existing, getErr := s.repo.GetByOpenID(ctx, openID)
+		if getErr != nil {
+			return nil, false, getErr
+		}
+		if existing != nil {
+			return existing, false, nil
+		}
 		return nil, false, err
 	}
 

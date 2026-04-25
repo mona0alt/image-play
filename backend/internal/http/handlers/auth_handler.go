@@ -78,7 +78,7 @@ func MeHandler(userRepo user.Repository) gin.HandlerFunc {
 			return
 		}
 		if account == nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get user"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
 			return
 		}
 

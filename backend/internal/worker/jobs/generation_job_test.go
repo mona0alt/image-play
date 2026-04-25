@@ -68,9 +68,11 @@ func (l *stubTemplateLoader) GetActiveTemplate(_ context.Context, sceneKey, temp
 
 type captureModelClient struct {
 	prompt string
+	calls  int
 }
 
 func (m *captureModelClient) Generate(_ context.Context, prompt string) (string, error) {
+	m.calls++
 	m.prompt = prompt
 	return "https://example.com/result.png", nil
 }
@@ -123,4 +125,36 @@ func TestNewGenerationJobRequiresTemplateLookup(t *testing.T) {
 	require.PanicsWithValue(t, "template lookup is required", func() {
 		NewGenerationJob(&stubGenerationRepo{}, nil, nil, nil, nil)
 	})
+}
+
+func TestExecuteRejectsTemplateWithInvalidPromptPreset(t *testing.T) {
+	repo := &stubGenerationRepo{
+		generation: &generation.Generation{
+			ID:          1,
+			UserID:      2,
+			SceneKey:    "portrait",
+			TemplateKey: "office-pro",
+			Fields: map[string]string{
+				"subject_name": "张三",
+			},
+			Status: "running",
+		},
+	}
+	templateLoader := &stubTemplateLoader{
+		template: &scenes.Template{
+			SceneKey:     "portrait",
+			TemplateKey:  "office-pro",
+			PromptPreset: scenes.PromptPreset{},
+			Active:       true,
+		},
+	}
+	model := &captureModelClient{}
+	job := NewGenerationJob(repo, templateLoader, model, &passAuditClient{}, nil)
+
+	err := job.Execute(context.Background(), repo.generation)
+
+	require.EqualError(t, err, "template preset invalid")
+	require.Equal(t, 0, model.calls)
+	require.Equal(t, "failed", repo.generation.Status)
+	require.Empty(t, repo.generation.ResultURL)
 }

@@ -51,26 +51,9 @@ type GenerationJob struct {
 	billingSvc     *billing.Service
 }
 
-func NewGenerationJob(repo generation.Repository, args ...interface{}) *GenerationJob {
-	var (
-		templateRepo generation.TemplateLookup
-		model        ModelClient
-		audit        AuditClient
-		billingSvc   *billing.Service
-	)
-
-	switch len(args) {
-	case 3:
-		model, _ = args[0].(ModelClient)
-		audit, _ = args[1].(AuditClient)
-		billingSvc, _ = args[2].(*billing.Service)
-	case 4:
-		templateRepo, _ = args[0].(generation.TemplateLookup)
-		model, _ = args[1].(ModelClient)
-		audit, _ = args[2].(AuditClient)
-		billingSvc, _ = args[3].(*billing.Service)
-	default:
-		panic("NewGenerationJob expects either legacy(repo, model, audit, billingSvc) or repo, templateRepo, model, audit, billingSvc")
+func NewGenerationJob(repo generation.Repository, templateRepo generation.TemplateLookup, model ModelClient, audit AuditClient, billingSvc *billing.Service) *GenerationJob {
+	if templateRepo == nil {
+		panic("template lookup is required")
 	}
 
 	if model == nil {
@@ -132,14 +115,6 @@ func (j *GenerationJob) Execute(ctx context.Context, g *generation.Generation) e
 }
 
 func (j *GenerationJob) buildPrompt(ctx context.Context, g *generation.Generation) (string, error) {
-	if j.templateRepo == nil {
-		return scenes.BuildPrompt(scenes.BuildInput{
-			SceneKey:    g.SceneKey,
-			TemplateKey: g.TemplateKey,
-			Fields:      g.Fields,
-		}), nil
-	}
-
 	template, err := j.templateRepo.GetActiveTemplate(ctx, g.SceneKey, g.TemplateKey)
 	if err != nil {
 		return "", fmt.Errorf("load active template: %w", err)

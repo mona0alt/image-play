@@ -17,7 +17,7 @@ type Runner struct {
 
 func NewRunner(repo generation.Repository, job *jobs.GenerationJob) *Runner {
 	if job == nil {
-		job = jobs.NewGenerationJob(repo, nil, nil, nil)
+		panic("generation job is required")
 	}
 	return &Runner{
 		generationRepo: repo,

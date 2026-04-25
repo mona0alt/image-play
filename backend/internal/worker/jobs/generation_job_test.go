@@ -118,3 +118,9 @@ func TestExecuteBuildsPromptFromTemplatePreset(t *testing.T) {
 	require.Equal(t, "success", repo.generation.Status)
 	require.Equal(t, "https://example.com/result.png", repo.generation.ResultURL)
 }
+
+func TestNewGenerationJobRequiresTemplateLookup(t *testing.T) {
+	require.PanicsWithValue(t, "template lookup is required", func() {
+		NewGenerationJob(&stubGenerationRepo{}, nil, nil, nil, nil)
+	})
+}

@@ -22,7 +22,7 @@
 
 ### "我的"页面调整
 
-- 在现有区块中新增 **"历史档案"入口卡片**
+- 在"余额"区块之后、"最近作品"区块之前新增 **"历史档案"入口卡片**
 - 点击后 `uni.navigateTo({ url: '/pages/history/index' })` 进入历史子页面
 - 历史子页面保留现有筛选器和列表布局，但不再显示底部导航
 
@@ -30,8 +30,9 @@
 
 ### 布局规范
 
-- **容器**：全屏高度（100vh），隐藏滚动条，垂直 `scroll-snap`
+- **容器**：全屏高度（100vh），隐藏滚动条。使用 `swiper` 组件纵向模式实现全屏切换（比 `scroll-snap` 在 uni-app 中兼容性更好）
 - **作品项**：每项占满一屏（100vh × 100vw），图片 `object-fit: cover` 铺满
+- **导航栏**：`pages.json` 中配置 `"navigationStyle": "custom"` 隐藏系统导航栏，由 ExploreCard 自行处理安全区
 - **右侧按钮**：固定在右下角偏上（bottom: 140px, right: 16px），垂直排列，间距 20px
 - **信息卡片**：固定在左下角（bottom: 100px, left: 16px, right: 80px），max-width 约 280px
 - **安全区**：顶部预留状态栏高度（约 44px），底部预留 TabBar + safe-area-inset-bottom
@@ -57,7 +58,7 @@
 | 方法 | 路径 | 用途 |
 |------|------|------|
 | GET | `/explore/feed` | 获取精选推荐作品列表（分页） |
-| POST | `/explore/like` | 点赞/取消点赞作品 |
+| POST | `/explore/like` | 点赞/取消点赞作品（参数：`generation_id`, `action: 'like' | 'unlike'`） |
 | GET | `/explore/like-status` | 批量获取点赞状态（可选优化） |
 
 ### Feed 数据模型

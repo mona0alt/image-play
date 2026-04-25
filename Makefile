@@ -1,4 +1,4 @@
-.PHONY: all build build-backend build-frontend test test-backend test-frontend clean lint dev dev-db dev-api dev-worker
+.PHONY: all build build-backend build-frontend test test-backend test-frontend clean lint dev dev-db dev-api dev-worker setup-mac
 
 DIST_DIR := dist
 BACKEND_DIR := backend
@@ -50,17 +50,36 @@ lint-frontend:
 	cd $(FRONTEND_DIR) && npx vue-tsc --noEmit
 
 # Development helpers
+setup-mac:
+	@echo "Installing PostgreSQL via Homebrew..."
+	brew install postgresql@15
+	@echo "Starting PostgreSQL service..."
+	brew services start postgresql@15
+	@echo "Creating database 'image_play'..."
+	createdb image_play || echo "Database may already exist"
+	@echo "Running migrations..."
+	psql postgres://postgres:postgres@localhost:5432/image_play -f $(BACKEND_DIR)/migrations/0001_init.sql
+	psql postgres://postgres:postgres@localhost:5432/image_play -f $(BACKEND_DIR)/migrations/0002_scene_templates.sql
+	psql postgres://postgres:postgres@localhost:5432/image_play -f $(INFRA_DIR)/sql/seed_scene_templates.sql
+	@echo "Setup complete. PostgreSQL is running on localhost:5432"
+
 dev-db:
-	@echo "Starting PostgreSQL..."
-	cd $(INFRA_DIR) && docker compose up -d postgres
+	@echo "Trying to start PostgreSQL..."
+	@which docker >/dev/null 2>&1 && cd $(INFRA_DIR) && docker compose up -d postgres && echo "PostgreSQL started via Docker." && exit 0; \
+	which pg_ctl >/dev/null 2>&1 && pg_ctl -D $(shell brew --prefix)/var/postgresql@15 start 2>/dev/null && echo "PostgreSQL started via pg_ctl." && exit 0; \
+	which brew >/dev/null 2>&1 && brew services start postgresql@15 2>/dev/null && echo "PostgreSQL started via brew services." && exit 0; \
+	echo "ERROR: Could not start PostgreSQL."; \
+	echo "  - If you have Docker, start Docker Desktop and try again."; \
+	echo "  - Otherwise, run 'make setup-mac' to install PostgreSQL via Homebrew."; \
+	exit 1
 
 dev-api:
 	@echo "Starting API server..."
-	JWT_SECRET=dev-secret DATABASE_URL=postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable cd $(BACKEND_DIR) && go run ./cmd/api
+	cd $(BACKEND_DIR) && JWT_SECRET=dev-secret DATABASE_URL=postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable go run ./cmd/api
 
 dev-worker:
 	@echo "Starting worker..."
-	DATABASE_URL=postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable cd $(BACKEND_DIR) && go run ./cmd/worker
+	cd $(BACKEND_DIR) && DATABASE_URL=postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable go run ./cmd/worker
 
 dev-frontend:
 	@echo "Building frontend for WeChat MP (dev)..."

@@ -1,4 +1,4 @@
-export type PrimaryTabKey = 'gallery' | 'create' | 'history' | 'profile'
+export type PrimaryTabKey = 'gallery' | 'create' | 'explore' | 'profile'
 
 export interface PrimaryTab {
   key: PrimaryTabKey
@@ -9,7 +9,7 @@ export interface PrimaryTab {
 export const PRIMARY_TABS: PrimaryTab[] = [
   { key: 'gallery', label: '艺廊', path: '/pages/home/index' },
   { key: 'create', label: '创作', path: '/pages/scene/index' },
-  { key: 'history', label: '历史', path: '/pages/history/index' },
+  { key: 'explore', label: '发现', path: '/pages/explore/index' },
   { key: 'profile', label: '我的', path: '/pages/profile/index' },
 ]
 

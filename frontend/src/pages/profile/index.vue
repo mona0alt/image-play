@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
-import { getMe, getPackages, createOrder, getHistory } from '../../services/api'
+import { getMe, getPackages, createOrder, getHistory, mapHistoryItem } from '../../services/api'
+import { isGenerationPending } from '../../utils/generation'
 
 const userStore = useUserStore()
 const packagesList = ref<{ code: string; title: string; price: string; count: number }[]>([])
-const history = ref<{ id: number; scene_key: string; template_key: string; status: string; result_url: string; created_at: string }[]>([])
+const history = ref<ReturnType<typeof mapHistoryItem>[]>([])
 const loading = ref(false)
 
 onMounted(async () => {
@@ -25,7 +26,7 @@ onMounted(async () => {
   }
   try {
     const res = await getHistory()
-    history.value = res.items || []
+    history.value = (res.items || []).map(mapHistoryItem)
   } catch (e) {
     // ignore
   }
@@ -78,10 +79,10 @@ function formatDate(ts: string) {
       <text class="section-title">生成历史</text>
       <view v-if="history.length === 0" class="empty">暂无记录</view>
       <view v-for="item in history" :key="item.id" class="history-item">
-        <text class="history-scene">{{ item.scene_key }} / {{ item.template_key }}</text>
-        <text class="history-status">{{ item.status }}</text>
-        <text class="history-date">{{ formatDate(item.created_at) }}</text>
-        <image v-if="item.result_url" class="history-img" :src="item.result_url" mode="aspectFill" />
+        <text class="history-scene">{{ item.sceneKey }} / {{ item.templateKey }}</text>
+        <text class="history-status" :class="{ pending: isGenerationPending(item.status) }">{{ item.status }}</text>
+        <text class="history-date">{{ formatDate(item.createdAt) }}</text>
+        <image v-if="item.resultUrl" class="history-img" :src="item.resultUrl" mode="aspectFill" />
       </view>
     </view>
   </view>
@@ -180,6 +181,9 @@ function formatDate(ts: string) {
   font-size: 26rpx;
   color: #666;
   margin-top: 8rpx;
+}
+.history-status.pending {
+  color: #007aff;
 }
 .history-date {
   display: block;

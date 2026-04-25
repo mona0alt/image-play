@@ -10,7 +10,7 @@ export interface Template {
   name: string
   sceneKey: string
   formSchema: FormField[]
-  sampleImageUrl?: string
+  sampleImageUrl?: string | undefined
 }
 
 export interface FormField {

@@ -18,9 +18,9 @@
         class="history-item"
         @click="goToResult(item)"
       >
-        <image class="thumb" :src="item.result_url || '/static/placeholder.png'" mode="aspectFill" />
+        <image class="thumb" :src="item.resultUrl || '/static/placeholder.png'" mode="aspectFill" />
         <view class="info">
-          <text class="scene">{{ item.scene_key }}</text>
+          <text class="scene">{{ item.sceneKey }}</text>
           <text class="status" :class="item.status">{{ item.status }}</text>
         </view>
       </view>
@@ -30,32 +30,32 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { getHistory } from '../../services/api'
+import { getHistory, mapHistoryItem } from '../../services/api'
+import { filterHistoryItems } from '../../utils/generation'
 
 interface HistoryItem {
   id: number
-  scene_key: string
-  template_key: string
+  sceneKey: string
+  templateKey: string
   status: string
-  result_url: string
-  created_at: string
+  resultUrl: string
+  createdAt: string
 }
 
 const items = ref<HistoryItem[]>([])
 const loading = ref(false)
 const filter = ref('all')
-const filters = ['all', 'success', 'failed']
+const filters = ['all', 'queued', 'running', 'result_auditing', 'success', 'failed']
 
 const filteredItems = computed(() => {
-  if (filter.value === 'all') return items.value
-  return items.value.filter((i) => i.status === filter.value)
+  return filterHistoryItems(items.value, filter.value)
 })
 
 async function fetchHistory() {
   loading.value = true
   try {
     const res = await getHistory()
-    items.value = res.items || []
+    items.value = (res.items || []).map(mapHistoryItem)
   } catch (e) {
     uni.showToast({ title: 'Failed to load history', icon: 'none' })
   } finally {
@@ -65,7 +65,7 @@ async function fetchHistory() {
 
 function goToResult(item: HistoryItem) {
   uni.navigateTo({
-    url: `/pages/result/index?generation_id=${item.id}&result_url=${encodeURIComponent(item.result_url)}`,
+    url: `/pages/result/index?generation_id=${item.id}`,
   })
 }
 

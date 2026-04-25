@@ -42,7 +42,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <GalleryPageShell active-tab="history" title="历史档案" subtitle="Archive">
+  <GalleryPageShell title="历史档案" subtitle="Archive">
     <EmptyStateCard
       v-if="error"
       title="历史加载失败"

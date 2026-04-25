@@ -17,6 +17,14 @@
       }
     },
     {
+      "path": "pages/explore/index",
+      "style": {
+        "navigationBarTitleText": "发现",
+        "navigationStyle": "custom",
+        "backgroundColor": "#000000"
+      }
+    },
+    {
       "path": "pages/result/index",
       "style": {
         "navigationBarTitleText": "生成结果",

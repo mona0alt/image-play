@@ -16,6 +16,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/require"
 	"image-play/internal/domain/generation"
+	"image-play/internal/domain/scenes"
 )
 
 func buildToken(userID int64, secret string) string {
@@ -30,6 +31,26 @@ type mockGenerationRepo struct {
 	mu          sync.Mutex
 	generations map[int64]*generation.Generation
 	nextID      int64
+}
+
+type mockActiveTemplateLookup struct {
+	templates map[string]*scenes.Template
+}
+
+func newMockActiveTemplateLookup() *mockActiveTemplateLookup {
+	return &mockActiveTemplateLookup{
+		templates: map[string]*scenes.Template{
+			"portrait:office-pro":        {SceneKey: "portrait", TemplateKey: "office-pro", Active: true},
+			"invitation:wedding-classic": {SceneKey: "invitation", TemplateKey: "wedding-classic", Active: true},
+			"festival:spring-festival":   {SceneKey: "festival", TemplateKey: "spring-festival", Active: true},
+			"tshirt:streetwear":          {SceneKey: "tshirt", TemplateKey: "streetwear", Active: true},
+			"poster:concert":             {SceneKey: "poster", TemplateKey: "concert", Active: true},
+		},
+	}
+}
+
+func (r *mockActiveTemplateLookup) GetActiveTemplate(_ context.Context, sceneKey, templateKey string) (*scenes.Template, error) {
+	return r.templates[sceneKey+":"+templateKey], nil
 }
 
 func newMockGenerationRepo() *mockGenerationRepo {
@@ -117,7 +138,7 @@ func (r *mockGenerationRepo) ListByUser(_ context.Context, userID int64) ([]*gen
 func TestCreateGenerationSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := newMockGenerationRepo()
-	svc := generation.NewService(repo)
+	svc := generation.NewService(repo, newMockActiveTemplateLookup())
 	r := gin.New()
 	r.POST("/api/generations", func(c *gin.Context) {
 		c.Set("user_id", int64(1))
@@ -141,7 +162,7 @@ func TestCreateGenerationSuccess(t *testing.T) {
 func TestCreateGenerationRejectsActiveJob(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := newMockGenerationRepo()
-	svc := generation.NewService(repo)
+	svc := generation.NewService(repo, newMockActiveTemplateLookup())
 	r := gin.New()
 	r.POST("/api/generations", func(c *gin.Context) {
 		c.Set("user_id", int64(1))
@@ -179,7 +200,7 @@ func TestCreateGenerationRejectsActiveJob(t *testing.T) {
 func TestCreateGenerationBadRequest(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := newMockGenerationRepo()
-	svc := generation.NewService(repo)
+	svc := generation.NewService(repo, newMockActiveTemplateLookup())
 	r := gin.New()
 	r.POST("/api/generations", func(c *gin.Context) {
 		c.Set("user_id", int64(1))

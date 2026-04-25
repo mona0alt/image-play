@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"image-play/internal/domain/scenes"
 )
 
 type ClientConfig struct {
@@ -19,7 +20,7 @@ func ClientConfigHandler(c *gin.Context) {
 			"single": "1.00",
 			"pack10": "8.00",
 		},
-		SceneOrder: []string{"portrait", "landscape", "fun"},
+		SceneOrder: scenes.SupportedSceneOrder(),
 	}
 	c.JSON(http.StatusOK, config)
 }

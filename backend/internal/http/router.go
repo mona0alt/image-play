@@ -8,6 +8,7 @@ import (
 	"image-play/internal/domain/billing"
 	"image-play/internal/domain/generation"
 	"image-play/internal/domain/tracking"
+	"image-play/internal/domain/user"
 	"image-play/internal/http/handlers"
 	"image-play/internal/http/middleware"
 	"image-play/internal/repository/postgres"
@@ -20,15 +21,17 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 		c.JSON(200, gin.H{"status": "ok"})
 	})
 
-	r.POST("/api/auth/login", handlers.LoginHandler(jwtSecret))
-	r.GET("/api/configs/client", handlers.ClientConfigHandler)
-
 	billingRepo := postgres.NewBillingRepo(db)
 	billingSvc := billing.NewService(billingRepo)
+	userRepo := postgres.NewUserRepo(db)
+	userSvc := user.NewService(userRepo)
+
+	r.POST("/api/auth/login", handlers.LoginHandler(jwtSecret, userSvc))
+	r.GET("/api/configs/client", handlers.ClientConfigHandler)
 
 	authorized := r.Group("/api")
 	authorized.Use(middleware.AuthMiddleware(jwtSecret))
-	authorized.GET("/me", handlers.MeHandler(billingRepo))
+	authorized.GET("/me", handlers.MeHandler(userRepo))
 
 	assetRepo := postgres.NewAssetRepo(db)
 	assetSvc := assets.NewService(assetRepo)

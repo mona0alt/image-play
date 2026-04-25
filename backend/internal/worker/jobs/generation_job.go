@@ -122,6 +122,9 @@ func (j *GenerationJob) buildPrompt(ctx context.Context, g *generation.Generatio
 	if template == nil {
 		return "", fmt.Errorf("template not available")
 	}
+	if !template.PromptPreset.IsUsable() {
+		return "", generation.ErrTemplatePresetInvalid
+	}
 
 	return scenes.BuildPrompt(scenes.BuildInput{
 		SceneKey:    g.SceneKey,

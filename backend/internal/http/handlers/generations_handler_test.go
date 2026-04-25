@@ -40,11 +40,46 @@ type mockActiveTemplateLookup struct {
 func newMockActiveTemplateLookup() *mockActiveTemplateLookup {
 	return &mockActiveTemplateLookup{
 		templates: map[string]*scenes.Template{
-			"portrait:office-pro":        {SceneKey: "portrait", TemplateKey: "office-pro", Active: true},
-			"invitation:wedding-classic": {SceneKey: "invitation", TemplateKey: "wedding-classic", Active: true},
-			"festival:spring-festival":   {SceneKey: "festival", TemplateKey: "spring-festival", Active: true},
-			"tshirt:streetwear":          {SceneKey: "tshirt", TemplateKey: "streetwear", Active: true},
-			"poster:concert":             {SceneKey: "poster", TemplateKey: "concert", Active: true},
+			"portrait:office-pro": {
+				SceneKey:    "portrait",
+				TemplateKey: "office-pro",
+				PromptPreset: scenes.PromptPreset{
+					BasePrompt: "职业形象照",
+				},
+				Active: true,
+			},
+			"invitation:wedding-classic": {
+				SceneKey:    "invitation",
+				TemplateKey: "wedding-classic",
+				PromptPreset: scenes.PromptPreset{
+					BasePrompt: "婚礼请柬",
+				},
+				Active: true,
+			},
+			"festival:spring-festival": {
+				SceneKey:    "festival",
+				TemplateKey: "spring-festival",
+				PromptPreset: scenes.PromptPreset{
+					BasePrompt: "春节贺卡",
+				},
+				Active: true,
+			},
+			"tshirt:streetwear": {
+				SceneKey:    "tshirt",
+				TemplateKey: "streetwear",
+				PromptPreset: scenes.PromptPreset{
+					BasePrompt: "街头潮流T恤图案",
+				},
+				Active: true,
+			},
+			"poster:concert": {
+				SceneKey:    "poster",
+				TemplateKey: "concert",
+				PromptPreset: scenes.PromptPreset{
+					BasePrompt: "演唱会海报",
+				},
+				Active: true,
+			},
 		},
 	}
 }
@@ -216,4 +251,61 @@ func TestCreateGenerationBadRequest(t *testing.T) {
 	r.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestCreateGenerationReturnsClientErrorWhenTemplateUnavailable(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newMockGenerationRepo()
+	svc := generation.NewService(repo, newMockActiveTemplateLookup())
+	r := gin.New()
+	r.POST("/api/generations", func(c *gin.Context) {
+		c.Set("user_id", int64(1))
+		CreateGenerationHandler(svc)(c)
+	})
+
+	body, _ := json.Marshal(CreateGenerationRequest{
+		ClientRequestID: "req-1",
+		SceneKey:        "portrait",
+		TemplateKey:     "missing-template",
+		Fields:          map[string]string{},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/generations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	require.Contains(t, w.Body.String(), "template not available")
+}
+
+func TestCreateGenerationReturnsClientErrorWhenTemplatePresetInvalid(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newMockGenerationRepo()
+	templates := newMockActiveTemplateLookup()
+	templates.templates["portrait:office-pro"] = &scenes.Template{
+		SceneKey:     "portrait",
+		TemplateKey:  "office-pro",
+		PromptPreset: scenes.PromptPreset{},
+		Active:       true,
+	}
+	svc := generation.NewService(repo, templates)
+	r := gin.New()
+	r.POST("/api/generations", func(c *gin.Context) {
+		c.Set("user_id", int64(1))
+		CreateGenerationHandler(svc)(c)
+	})
+
+	body, _ := json.Marshal(CreateGenerationRequest{
+		ClientRequestID: "req-1",
+		SceneKey:        "portrait",
+		TemplateKey:     "office-pro",
+		Fields:          map[string]string{},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/generations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusUnprocessableEntity, w.Code)
+	require.Contains(t, w.Body.String(), "template preset invalid")
 }

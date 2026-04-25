@@ -1,5 +1,7 @@
 package scenes
 
+import "strings"
+
 type FormField struct {
 	Name     string   `json:"name"`
 	Label    string   `json:"label"`
@@ -13,6 +15,10 @@ type FormSchema []FormField
 type PromptPreset struct {
 	BasePrompt string   `json:"base_prompt"`
 	StyleWords []string `json:"style_words,omitempty"`
+}
+
+func (p PromptPreset) IsUsable() bool {
+	return strings.TrimSpace(p.BasePrompt) != ""
 }
 
 type Template struct {

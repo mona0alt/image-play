@@ -11,6 +11,8 @@ import (
 
 var ErrActiveGenerationExists = errors.New("active generation already exists")
 var ErrTemplateNotAvailable = errors.New("template not available")
+var ErrUnsupportedScene = errors.New("unsupported scene")
+var ErrTemplatePresetInvalid = errors.New("template preset invalid")
 
 var activeStatuses = map[string]bool{
 	"queued":          true,
@@ -68,6 +70,9 @@ func (s *Service) CreateGeneration(ctx context.Context, input CreateGenerationIn
 	if s.templates == nil {
 		return 0, errors.New("template lookup not configured")
 	}
+	if !scenes.IsSupportedScene(input.SceneKey) {
+		return 0, ErrUnsupportedScene
+	}
 
 	template, err := s.templates.GetActiveTemplate(ctx, input.SceneKey, input.TemplateKey)
 	if err != nil {
@@ -75,6 +80,9 @@ func (s *Service) CreateGeneration(ctx context.Context, input CreateGenerationIn
 	}
 	if template == nil {
 		return 0, ErrTemplateNotAvailable
+	}
+	if !template.PromptPreset.IsUsable() {
+		return 0, ErrTemplatePresetInvalid
 	}
 
 	now := time.Now()

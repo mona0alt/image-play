@@ -14,7 +14,6 @@ BEGIN
     SET name = EXCLUDED.name,
         form_schema = EXCLUDED.form_schema,
         prompt_preset = EXCLUDED.prompt_preset,
-        sample_image_url = EXCLUDED.sample_image_url,
-        is_active = EXCLUDED.is_active;
+        sample_image_url = EXCLUDED.sample_image_url;
   END IF;
 END $$;

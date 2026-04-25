@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"log"
 	"net/http"
 
@@ -48,8 +49,16 @@ func CreateGenerationHandler(svc *generation.Service) gin.HandlerFunc {
 			SourceAssetID:   req.SourceAssetID,
 		})
 		if err != nil {
-			if err == generation.ErrActiveGenerationExists {
+			if errors.Is(err, generation.ErrActiveGenerationExists) {
 				c.JSON(http.StatusConflict, gin.H{"error": err.Error()})
+				return
+			}
+			if errors.Is(err, generation.ErrUnsupportedScene) {
+				c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+				return
+			}
+			if errors.Is(err, generation.ErrTemplateNotAvailable) || errors.Is(err, generation.ErrTemplatePresetInvalid) {
+				c.JSON(http.StatusUnprocessableEntity, gin.H{"error": err.Error()})
 				return
 			}
 			log.Printf("CreateGeneration error: %v", err)

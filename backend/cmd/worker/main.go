@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"image-play/internal/config"
 	"image-play/internal/domain/billing"
+	"image-play/internal/migration"
 	"image-play/internal/repository/postgres"
 	"image-play/internal/worker"
 	"image-play/internal/worker/jobs"
@@ -23,6 +24,9 @@ func main() {
 	defer db.Close()
 	if err := db.Ping(); err != nil {
 		log.Fatalf("database unreachable: %v", err)
+	}
+	if err := migration.Run(context.Background(), db); err != nil {
+		log.Fatalf("migration failed: %v", err)
 	}
 	repo := postgres.NewGenerationRepo(db)
 	templateRepo := postgres.NewSceneTemplateRepo(db)

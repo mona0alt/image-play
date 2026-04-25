@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { PRIMARY_TABS, type PrimaryTabKey } from '../../utils/navigation'
+import { GALLERY_TAB_BAR_SPACE } from './tab-bar-layout'
 
 const props = defineProps<{
   activeKey: PrimaryTabKey
 }>()
+
+const tabBarStyle = {
+  height: GALLERY_TAB_BAR_SPACE,
+}
 
 function go(path: string) {
   uni.reLaunch({ url: path })
@@ -11,7 +16,7 @@ function go(path: string) {
 </script>
 
 <template>
-  <view class="tab-bar">
+  <view class="tab-bar" :style="tabBarStyle">
     <view
       v-for="tab in PRIMARY_TABS"
       :key="tab.key"
@@ -26,6 +31,11 @@ function go(path: string) {
 
 <style scoped>
 .tab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 20;
   display: flex;
   gap: 12rpx;
   padding: 24rpx 24rpx calc(24rpx + env(safe-area-inset-bottom));

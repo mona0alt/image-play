@@ -16,6 +16,9 @@ worker
 infra/env/*.env
 !infra/env/*.env.example
 
+.npmrc
+.gocache/
+
 # IDE
 .idea
 .vscode

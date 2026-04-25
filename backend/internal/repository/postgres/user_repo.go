@@ -17,7 +17,7 @@ func NewUserRepo(db *sql.DB) *UserRepo {
 }
 
 func (r *UserRepo) GetByID(ctx context.Context, id int64) (*user.User, error) {
-	const query = `SELECT id, openid, balance, free_quota FROM users WHERE id = $1`
+	const query = `SELECT id, openid, balance, free_quota, nickname, avatar_url FROM users WHERE id = $1`
 
 	account := &user.User{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
@@ -25,6 +25,8 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*user.User, error) {
 		&account.OpenID,
 		&account.Balance,
 		&account.FreeQuota,
+		&account.Nickname,
+		&account.AvatarURL,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -37,7 +39,7 @@ func (r *UserRepo) GetByID(ctx context.Context, id int64) (*user.User, error) {
 }
 
 func (r *UserRepo) GetByOpenID(ctx context.Context, openID string) (*user.User, error) {
-	const query = `SELECT id, openid, balance, free_quota FROM users WHERE openid = $1`
+	const query = `SELECT id, openid, balance, free_quota, nickname, avatar_url FROM users WHERE openid = $1`
 
 	account := &user.User{}
 	err := r.db.QueryRowContext(ctx, query, openID).Scan(
@@ -45,6 +47,8 @@ func (r *UserRepo) GetByOpenID(ctx context.Context, openID string) (*user.User, 
 		&account.OpenID,
 		&account.Balance,
 		&account.FreeQuota,
+		&account.Nickname,
+		&account.AvatarURL,
 	)
 	if err == sql.ErrNoRows {
 		return nil, nil

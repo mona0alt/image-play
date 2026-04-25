@@ -2,7 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import ExploreFeed from '../../components/explore/ExploreFeed.vue'
 import EmptyStateCard from '../../components/common/EmptyStateCard.vue'
-import GalleryTabBar from '../../components/navigation/GalleryTabBar.vue'
+import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
 import { getExploreFeed, likeExploreItem } from '../../services/api'
 import { buildExploreViewModel } from './view-model'
 import type { ExploreItem } from '../../services/api'
@@ -78,41 +78,60 @@ const vm = computed(() => buildExploreViewModel({
 </script>
 
 <template>
-  <view class="explore-page">
-    <EmptyStateCard
-      v-if="error"
-      title="推荐内容加载失败"
-      :description="error"
-      action-label="重新加载"
-      @action="loadFeed"
-    />
+  <GalleryPageShell active-tab="explore" no-padding>
+    <view class="explore-page">
+      <view
+        v-if="error || (vm.empty && !loading)"
+        class="explore-page__placeholder"
+      >
+        <EmptyStateCard
+          v-if="error"
+          title="推荐内容加载失败"
+          :description="error"
+          action-label="重新加载"
+          @action="loadFeed"
+        />
+        <EmptyStateCard
+          v-else
+          title="暂无精选作品"
+          description="先去创作吧"
+          action-label="去创作"
+          @action="openCreate"
+        />
+      </view>
 
-    <EmptyStateCard
-      v-else-if="vm.empty && !loading"
-      title="暂无精选作品"
-      description="先去创作吧"
-      action-label="去创作"
-      @action="openCreate"
-    />
-
-    <ExploreFeed
-      v-else
-      :items="items"
-      :has-more="hasMore"
-      @load-more="loadFeed"
-      @like="handleLike"
-      @same-style="handleSameStyle"
-    />
-
-    <GalleryTabBar active-key="explore" />
-  </view>
+      <view v-else class="explore-page__feed">
+        <ExploreFeed
+          :items="items"
+          :has-more="hasMore"
+          @load-more="loadFeed"
+          @like="handleLike"
+          @same-style="handleSameStyle"
+        />
+      </view>
+    </view>
+  </GalleryPageShell>
 </template>
 
 <style scoped>
 .explore-page {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
   background: #000000;
+}
+
+.explore-page__placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48rpx 32rpx;
+  background: var(--gallery-bg);
+}
+
+.explore-page__feed {
+  flex: 1;
+  position: relative;
 }
 </style>

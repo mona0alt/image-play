@@ -50,6 +50,9 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 	trackingSvc := tracking.NewService(trackingRepo)
 	authorized.POST("/tracking/events", handlers.TrackingEventsHandler(trackingSvc))
 
+	authorized.GET("/explore/feed", handlers.ExploreFeedHandler(db))
+	authorized.POST("/explore/like", handlers.ExploreLikeHandler(db))
+
 	r.POST("/api/payments/callback", handlers.PaymentCallbackHandler(billingSvc))
 
 	// Admin routes — TODO: add admin role check middleware in production

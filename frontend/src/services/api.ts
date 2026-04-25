@@ -209,7 +209,7 @@ export function getExploreFeed(page = 1, pageSize = 10) {
     url: `/api/explore/feed?page=${page}&page_size=${pageSize}`,
     method: 'GET',
   }).then((res) => ({
-    items: res.items.map(mapExploreItem),
+    items: (res.items || []).map(mapExploreItem),
     pagination: res.pagination,
   }))
 }

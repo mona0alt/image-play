@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "surface-container-high": "#ebe7e6",
+                    "tertiary": "#000000",
+                    "on-tertiary": "#ffffff",
+                    "surface-container": "#f1edec",
+                    "inverse-on-surface": "#f4f0ef",
+                    "on-background": "#1c1b1b",
+                    "error-container": "#ffdad6",
+                    "surface-container-lowest": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "surface-container-low": "#f7f3f2",
+                    "secondary": "#5d5f5f",
+                    "on-secondary-fixed-variant": "#454747",
+                    "on-primary-fixed-variant": "#474746",
+                    "secondary-container": "#dfe0e0",
+                    "on-error": "#ffffff",
+                    "secondary-fixed": "#e2e2e2",
+                    "background": "#fdf8f8",
+                    "surface-tint": "#5f5e5e",
+                    "primary-fixed-dim": "#c8c6c5",
+                    "outline": "#747878",
+                    "on-secondary-fixed": "#1a1c1c",
+                    "tertiary-fixed-dim": "#cac6c4",
+                    "secondary-fixed-dim": "#c6c6c7",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#e5e2e1",
+                    "on-surface-variant": "#444748",
+                    "inverse-primary": "#c8c6c5",
+                    "on-secondary-container": "#616363",
+                    "surface-variant": "#e5e2e1",
+                    "on-primary-fixed": "#1c1b1b",
+                    "primary-container": "#1c1b1b",
+                    "inverse-surface": "#313030",
+                    "on-tertiary-container": "#868382",
+                    "on-primary-container": "#858383",
+                    "on-secondary": "#ffffff",
+                    "surface-dim": "#ddd9d8",
+                    "tertiary-container": "#1c1b1a",
+                    "on-surface": "#1c1b1b",
+                    "outline-variant": "#c4c7c7",
+                    "on-tertiary-fixed": "#1c1b1a",
+                    "surface-bright": "#fdf8f8",
+                    "primary": "#000000",
+                    "primary-fixed": "#e5e2e1",
+                    "error": "#ba1a1a",
+                    "tertiary-fixed": "#e6e2df",
+                    "surface": "#fdf8f8"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "manrope": ["Manrope", "sans-serif"],
+                    "inter": ["Inter", "sans-serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .snap-y-container {
+            scroll-snap-type: y mandatory;
+            height: 100vh;
+            overflow-y: scroll;
+            scrollbar-width: none;
+        }
+        .snap-y-container::-webkit-scrollbar {
+            display: none;
+        }
+        .snap-item {
+            scroll-snap-align: start;
+            height: 100vh;
+            width: 100%;
+            position: relative;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-overlay {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-inter overflow-hidden">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-8 h-16 bg-white/80 dark:bg-neutral-950/80 backdrop-blur-md border-b border-neutral-100 dark:border-neutral-900">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-neutral-900 dark:text-neutral-50 active:scale-98 transition-transform hover:opacity-70 duration-300" data-icon="menu">menu</span>
+</div>
+<h1 class="font-manrope font-semibold tracking-[0.2em] text-sm text-neutral-900 dark:text-neutral-50 uppercase">发现作品</h1>
+<div class="w-8 h-8 rounded-full overflow-hidden border border-neutral-200 active:scale-98 transition-transform hover:opacity-70 duration-300">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCz06_WoQZhb2zQqW0I0PMhtm_KsyWhKeSeATqy6Xw_vPmyZqLJG_BcgyoN7WrGO7bAQoso0Wf9w11RVJevOlX5E54UvX_PdNI0sS89C7iT1wnJynzUMLL95ekDijgrxL8r_j-na30nOhMdr4jrR2SkNj532Rwr94d4Nosu3VdDXHgW7f9_N9YEPCAlKr0ZDGvVrl0W_TMdZjR5AT90_uQuett326sCbhmv7j9j5eVE_t5kAp163ohLjwYthDTAaRIyHJWQ2hSXqck"/>
+</div>
+</header>
+<!-- Main Content: Vertical Scroll Feed -->
+<main class="snap-y-container">
+<!-- Post 1 -->
+<section class="snap-item bg-zinc-900">
+<img alt="Artistic Generation 1" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABJOAyf2oALkaj_--COJDCcSQ3bkEFAewwJeygtjsEPO0cncqOP3tPByuy_gQVa9iRRr6a9ZbbcCO_dLGbZVIeEmozaLLq97bONpx2rcJNLPjFKs8ZLgBWbI2S0gVqpWprB8_qs9aBuz25U6Y4blBsvWShqzt10BK_yhIIRBen35irIXDDA82-ZbdoH1PsXPtAMfDkEFK_EjZtzrg8KdcfmKyk2sizAqIAntF1U3_NuxxPj90lItsLAkG6e1CzL9Rf1i8-u2bx7So"/>
+<!-- Side Actions -->
+<div class="absolute right-6 bottom-36 flex flex-col items-center gap-8 z-10">
+<div class="flex flex-col items-center gap-2 group transition-all active:scale-90">
+<div class="w-14 h-14 glass-overlay rounded-full flex items-center justify-center text-white border border-white/20">
+<span class="material-symbols-outlined text-2xl" data-icon="favorite" style="font-variation-settings: 'FILL' 1;">favorite</span>
+</div>
+<span class="font-manrope text-[10px] text-white font-medium tracking-widest uppercase drop-shadow-md">点赞</span>
+</div>
+<div class="flex flex-col items-center gap-2 group transition-all active:scale-90">
+<div class="w-14 h-14 bg-white rounded-full flex items-center justify-center text-neutral-900 shadow-2xl border border-white/40">
+<span class="material-symbols-outlined text-3xl" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<span class="font-manrope text-[10px] text-white font-medium tracking-widest uppercase drop-shadow-md">同款</span>
+</div>
+</div>
+<!-- Bottom Left Info -->
+<div class="absolute bottom-28 left-8 right-24 z-10">
+<div class="bg-black/20 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-2xl max-w-sm">
+<div class="flex items-center gap-3 mb-3">
+<img alt="Author" class="w-8 h-8 rounded-full border border-white/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDCtKQr62O-7myyMnehGKlLNpUhY14JDrOk6qpLR9dxiCtUJRdJhkaUlOfG1oPu2y3cRYPihtOy7cV893kIjwuiosKS2m7OfBIbBByctrOXYDqW4LLQdr1AHRMu25Rwg-suHhRNEGzAjiVzhjWJD2Wn0Rhp7BJL-QxwxF0ia_h-COC8rgjgyy5WeB5iswXwQo7hKhMA8n4O1haqdy1TC_vAqAWk-9wKGEdH4uzKLWbBHgzhfNndpMs3LfqDqjr_BHzlYUNsdg6Gpe8"/>
+<span class="font-manrope text-sm font-semibold text-white tracking-wide">@林溪_AI</span>
+</div>
+<p class="text-white/90 text-sm leading-relaxed font-light tracking-wide">
+                        流动的梦境系列：捕捉光影在数字丝绸上的瞬间。提示词：超高清、极简主义、渐变、动态构图。
+                    </p>
+</div>
+</div>
+</section>
+<!-- Post 2 -->
+<section class="snap-item bg-zinc-900">
+<img alt="Artistic Generation 2" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCmg17YGlWpJP_Jkcx4mtSUhg5YwhNp5ctJVrRqG5GgALovf6QgToWJH2LByou2Zs-o0GpNem_OIyaWZsHWtbroZF_jQpvXeuamkIoDEJbH5V2cOqg2U6D1DTj1mBsaNTu4_2BnVOwZJBadznH2wX7lTNaopCcKN2AOh_-VPr-G6rF0nT-z91CwcGZP3S5_3cNvzqKc5n0-89AiZaCJWjlUCCDkO2nkzx4VgUmEc4DIq9jim4Ccabsi9pR8oVpRyDCNTk19Gc1Fx2g"/>
+<!-- Side Actions -->
+<div class="absolute right-6 bottom-36 flex flex-col items-center gap-8 z-10">
+<div class="flex flex-col items-center gap-2 group transition-all active:scale-90">
+<div class="w-14 h-14 glass-overlay rounded-full flex items-center justify-center text-white border border-white/20">
+<span class="material-symbols-outlined text-2xl" data-icon="favorite">favorite</span>
+</div>
+<span class="font-manrope text-[10px] text-white font-medium tracking-widest uppercase drop-shadow-md">点赞</span>
+</div>
+<div class="flex flex-col items-center gap-2 group transition-all active:scale-90">
+<div class="w-14 h-14 bg-white rounded-full flex items-center justify-center text-neutral-900 shadow-2xl border border-white/40">
+<span class="material-symbols-outlined text-3xl" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<span class="font-manrope text-[10px] text-white font-medium tracking-widest uppercase drop-shadow-md">同款</span>
+</div>
+</div>
+<!-- Bottom Left Info -->
+<div class="absolute bottom-28 left-8 right-24 z-10">
+<div class="bg-black/20 backdrop-blur-xl p-6 rounded-2xl border border-white/10 shadow-2xl max-w-sm">
+<div class="flex items-center gap-3 mb-3">
+<img alt="Author" class="w-8 h-8 rounded-full border border-white/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDvzeSqxinPIapwLvi9LdE_3L7ga314Q6dPvW_82YXhjVVKW3RWrEkG_euBoELvwwRT5NwACOQT01rIt_cKRL3X63uuCzwM3sIACiCaZBZg_B42slIQkBRN3ELam6F-9-ywzg4QMw1Bxwa9U4HeJcZlI7XL5x29PRTnVvNJh43sRizZshNQdSkFAlfLtEhnqSIfvywwh51GyYNrEqnVgKtt9so8JfMY_wkvkvjQUOoO_UEdrRLZ7b3eKktfaqgkBHzH23V5yNjJCeg"/>
+<span class="font-manrope text-sm font-semibold text-white tracking-wide">@建筑诗人</span>
+</div>
+<p class="text-white/90 text-sm leading-relaxed font-light tracking-wide">
+                        静谧空间：探索光影与几何的对话。建筑摄影风格，包豪斯主义，高对比度。
+                    </p>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-safe h-20 bg-white dark:bg-neutral-950 border-t border-neutral-100 dark:border-neutral-900 shadow-[0_-1px_20px_rgba(0,0,0,0.02)]">
+<!-- Gallery (Inactive) -->
+<a class="flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-600 pt-2 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors active:opacity-80 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="gallery_thumbnail">gallery_thumbnail</span>
+<span class="font-manrope text-[10px] font-medium tracking-tighter">艺廊</span>
+</a>
+<!-- Create (Inactive) -->
+<a class="flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-600 pt-2 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors active:opacity-80 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="add_circle">add_circle</span>
+<span class="font-manrope text-[10px] font-medium tracking-tighter">创作</span>
+</a>
+<!-- Explore (Active) -->
+<a class="flex flex-col items-center justify-center text-neutral-900 dark:text-neutral-50 border-t-2 border-neutral-900 dark:border-neutral-50 pt-2 -mt-[0.5px] active:opacity-80 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="explore" data-weight="fill" style="font-variation-settings: 'FILL' 1;">explore</span>
+<span class="font-manrope text-[10px] font-medium tracking-tighter">发现</span>
+</a>
+<!-- Profile (Inactive) -->
+<a class="flex flex-col items-center justify-center text-neutral-400 dark:text-neutral-600 pt-2 hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors active:opacity-80 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="person_outline">person_outline</span>
+<span class="font-manrope text-[10px] font-medium tracking-tighter">我的</span>
+</a>
+</nav>
+</body></html>

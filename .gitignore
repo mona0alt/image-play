@@ -1,13 +1,18 @@
 # Dependencies
-frontend/node_modules
-backend/vendor
+node_modules/
+vendor/
 
 # Build outputs
 frontend/dist
 frontend/unpackage
 backend/bin
+backend/api
+api
+worker
 
 # Environment files
+*.env
+!.env.example
 infra/env/*.env
 !infra/env/*.env.example
 

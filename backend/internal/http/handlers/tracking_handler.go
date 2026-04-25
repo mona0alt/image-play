@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,23 @@ func TrackingEventsHandler(svc *tracking.Service) gin.HandlerFunc {
 		if err := c.ShouldBindJSON(&req); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 			return
+		}
+
+		if len(req.Event) == 0 || len(req.Event) > 64 {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "event name too long or empty"})
+			return
+		}
+
+		if req.Payload != nil {
+			data, err := json.Marshal(req.Payload)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid payload"})
+				return
+			}
+			if len(data) > 16384 {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "payload too large"})
+				return
+			}
 		}
 
 		if err := svc.TrackEvent(c.Request.Context(), uid, req.Event, req.Payload); err != nil {

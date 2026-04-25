@@ -25,13 +25,21 @@ onLoad((query: any) => {
   resultUrl.value = query.result_url || ''
 })
 
-function onSave() {
-  track(mapTrackingEvent('save'), { generation_id: generationId.value })
+async function onSave() {
+  try {
+    await track(mapTrackingEvent('save'), { generation_id: generationId.value })
+  } catch (e) {
+    console.error('track save failed:', e)
+  }
   uni.showToast({ title: 'Saved', icon: 'success' })
 }
 
-function onShare() {
-  track(mapTrackingEvent('share'), { generation_id: generationId.value })
+async function onShare() {
+  try {
+    await track(mapTrackingEvent('share'), { generation_id: generationId.value })
+  } catch (e) {
+    console.error('track share failed:', e)
+  }
   uni.showShareMenu({ withShareTicket: true })
 }
 

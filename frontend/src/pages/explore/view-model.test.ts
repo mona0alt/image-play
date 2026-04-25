@@ -24,10 +24,10 @@ describe('buildExploreViewModel', () => {
     })
 
     expect(vm.cards).toHaveLength(1)
-    expect(vm.cards[0].id).toBe(1)
-    expect(vm.cards[0].user.nickname).toBe('User1')
-    expect(vm.cards[0].likeCount).toBe(10)
-    expect(vm.cards[0].isLiked).toBe(false)
+    expect(vm.cards[0]!.id).toBe(1)
+    expect(vm.cards[0]!.user.nickname).toBe('User1')
+    expect(vm.cards[0]!.likeCount).toBe(10)
+    expect(vm.cards[0]!.isLiked).toBe(false)
   })
 
   it('returns empty cards when no items', () => {

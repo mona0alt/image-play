@@ -33,7 +33,7 @@ export function request<T>(options: {
         const response = res as unknown as ApiResponse<T>
         if (response.statusCode === 401) {
           uni.removeStorageSync('access_token')
-          uni.reLaunch({ url: '/pages/login/login' })
+          uni.reLaunch({ url: '/pages/home/index' })
           reject(new Error('Unauthorized'))
           return
         }
@@ -93,5 +93,64 @@ export function getHistory() {
   return request<{ items: { id: number; scene_key: string; template_key: string; status: string; result_url: string; created_at: string }[] }>({
     url: '/api/history',
     method: 'GET',
+  })
+}
+
+export interface SceneTemplateDTO {
+  key: string
+  name: string
+  scene_key: string
+  form_schema: { name: string; label: string; type: 'text' | 'textarea' | 'date' | 'select'; required?: boolean; options?: string[] }[]
+  sample_image_url?: string
+}
+
+export interface HistoryItemDTO {
+  id: number
+  scene_key: string
+  template_key: string
+  status: string
+  result_url: string
+  created_at: string
+}
+
+export function mapSceneTemplate(dto: SceneTemplateDTO) {
+  return {
+    key: dto.key,
+    name: dto.name,
+    sceneKey: dto.scene_key,
+    formSchema: dto.form_schema,
+    sampleImageUrl: dto.sample_image_url,
+  }
+}
+
+export function mapHistoryItem(dto: HistoryItemDTO) {
+  return {
+    id: dto.id,
+    sceneKey: dto.scene_key,
+    templateKey: dto.template_key,
+    status: dto.status,
+    resultUrl: dto.result_url,
+    createdAt: dto.created_at,
+  }
+}
+
+export function getSceneTemplates(sceneKey: string) {
+  return request<{ items: SceneTemplateDTO[] }>({
+    url: `/api/scenes/${sceneKey}/templates`,
+    method: 'GET',
+  }).then((res) => res.items.map(mapSceneTemplate))
+}
+
+export function createGeneration(payload: {
+  client_request_id: string
+  scene_key: string
+  template_key: string
+  fields: Record<string, string>
+}) {
+  return request<{ generation_id: number }>({
+    url: '/api/generations',
+    method: 'POST',
+    data: payload,
+    headers: { 'Content-Type': 'application/json' },
   })
 }

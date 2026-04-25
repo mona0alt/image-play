@@ -59,7 +59,7 @@ function navigateToScene(key: string) {
         />
       </view>
     </view>
-    <view v-if="error">{{ error }}</view>
+    <view v-else-if="error">{{ error }}</view>
     <view v-else class="loading">
       <text>加载中...</text>
     </view>

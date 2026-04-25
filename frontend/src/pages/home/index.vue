@@ -1,83 +1,175 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-const error = ref('')
-import { useConfigStore } from '../../store/config'
-import { getHero, getGallery } from '../../utils/scene'
-import SceneHeroCard from '../../components/scene/SceneHeroCard.vue'
+import { computed, onMounted, ref } from 'vue'
+import EmptyStateCard from '../../components/common/EmptyStateCard.vue'
+import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
 import SceneGalleryCard from '../../components/scene/SceneGalleryCard.vue'
-import { getClientConfig } from '../../services/api'
+import SceneHeroCard from '../../components/scene/SceneHeroCard.vue'
+import { getClientConfig, getHistory, getMe, mapHistoryItem } from '../../services/api'
+import { useConfigStore } from '../../store/config'
+import { useUserStore } from '../../store/user'
+import { buildHomeViewModel } from './view-model'
 
 const configStore = useConfigStore()
+const userStore = useUserStore()
+const historyItems = ref<ReturnType<typeof mapHistoryItem>[]>([])
+const loading = ref(true)
+const error = ref('')
 
-const sceneOrder = ref<string[]>([])
+const model = computed(() => buildHomeViewModel({
+  sceneOrder: configStore.clientConfig?.scene_order ?? [],
+  historyItems: historyItems.value,
+  profile: userStore.profile,
+}))
 
-const sceneMeta: Record<string, { name: string; description: string; icon: string }> = {
-  portrait: { name: '人像写真', description: '打造专属个人写真风格', icon: '📸' },
-  festival: { name: '节日海报', description: '快速生成节日主题海报', icon: '🎉' },
-  invitation: { name: '邀请函', description: '精美电子邀请函制作', icon: '💌' },
-  tshirt: { name: 'T恤图案', description: '创意T恤图案设计', icon: '👕' },
-  poster: { name: '商业海报', description: '专业商业宣传海报', icon: '📰' },
-}
+async function loadPage() {
+  loading.value = true
+  error.value = ''
+  try {
+    const [configRes, historyRes, meRes] = await Promise.all([
+      configStore.clientConfig ? Promise.resolve(configStore.clientConfig) : getClientConfig(),
+      getHistory(),
+      userStore.profile ? Promise.resolve(userStore.profile) : getMe(),
+    ])
 
-function buildScene(key: string) {
-  const meta = sceneMeta[key]
-  if (!meta) return { key, name: key, description: '', icon: '❓' }
-  return { key, name: meta.name, description: meta.description, icon: meta.icon }
-}
-
-onMounted(async () => {
-  if (!configStore.clientConfig) {
-    try {
-      const config = await getClientConfig()
-      configStore.setClientConfig(config)
-    } catch (e) {
-      error.value = '配置加载失败，请重试'
+    if (!configStore.clientConfig) {
+      configStore.setClientConfig(configRes)
     }
+    if (!userStore.profile) {
+      userStore.setProfile(meRes)
+    }
+    historyItems.value = (historyRes.items || []).map(mapHistoryItem)
+  } catch (err) {
+    error.value = '艺廊加载失败，请重试'
+  } finally {
+    loading.value = false
   }
-  sceneOrder.value = configStore.clientConfig?.scene_order ?? []
-})
-
-function navigateToScene(key: string) {
-  uni.navigateTo({ url: `/pages/scene/index?scene_key=${key}` })
 }
+
+function openCreate(sceneKey: string) {
+  uni.reLaunch({ url: `/pages/scene/index?scene_key=${sceneKey}` })
+}
+
+function openResult(id: number) {
+  uni.navigateTo({ url: `/pages/result/index?generation_id=${id}` })
+}
+
+function openProfile() {
+  uni.reLaunch({ url: '/pages/profile/index' })
+}
+
+onMounted(loadPage)
 </script>
 
 <template>
-  <view class="home">
-    <view v-if="sceneOrder.length > 0">
-      <SceneHeroCard
-        v-if="getHero(sceneOrder)"
-        :scene="buildScene(getHero(sceneOrder)!)"
-        @tap="navigateToScene"
-      />
-      <view class="gallery">
-        <SceneGalleryCard
-          v-for="key in getGallery(sceneOrder)"
-          :key="key"
-          :scene="buildScene(key)"
-          @tap="navigateToScene"
-        />
+  <GalleryPageShell active-tab="gallery">
+    <EmptyStateCard
+      v-if="error"
+      title="艺廊暂时不可用"
+      :description="error"
+      action-label="重新加载"
+      @action="loadPage"
+    />
+
+    <view v-else-if="!loading" class="home-page">
+      <SceneHeroCard :scene="model.heroScene" @tap="openCreate" />
+
+      <view class="home-page__section">
+        <text class="home-page__eyebrow">Curated Collection</text>
+        <view class="home-page__gallery">
+          <SceneGalleryCard
+            v-for="scene in model.galleryScenes"
+            :key="scene.key"
+            :scene="scene"
+            @tap="openCreate"
+          />
+        </view>
+      </view>
+
+      <view v-if="model.recentWorks.length > 0" class="home-page__section">
+        <text class="home-page__eyebrow">Recent Works</text>
+        <scroll-view scroll-x class="home-page__recent-list">
+          <view
+            v-for="item in model.recentWorks"
+            :key="item.id"
+            class="home-page__recent-item"
+            @click="openResult(item.id)"
+          >
+            <image class="home-page__recent-image" :src="item.resultUrl" mode="aspectFill" />
+          </view>
+        </scroll-view>
+      </view>
+
+      <view class="home-page__credit-card" @click="openProfile">
+        <text class="home-page__eyebrow">{{ model.creditTitle }}</text>
+        <text class="home-page__credit-value">{{ model.creditValue }}</text>
+        <text class="home-page__credit-meta">余额 {{ model.balanceValue }}</text>
       </view>
     </view>
-    <view v-else-if="error">{{ error }}</view>
-    <view v-else class="loading">
-      <text>加载中...</text>
-    </view>
-  </view>
+  </GalleryPageShell>
 </template>
 
 <style scoped>
-.home {
-  padding: 24rpx;
-}
-.gallery {
+.home-page {
   display: flex;
-  flex-wrap: wrap;
-  margin-top: 16rpx;
+  flex-direction: column;
+  gap: 32rpx;
 }
-.loading {
-  text-align: center;
-  padding: 48rpx;
-  color: #999;
+
+.home-page__section {
+  display: flex;
+  flex-direction: column;
+  gap: 18rpx;
+}
+
+.home-page__eyebrow {
+  font-size: 20rpx;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gallery-muted);
+}
+
+.home-page__gallery {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
+}
+
+.home-page__recent-list {
+  white-space: nowrap;
+}
+
+.home-page__recent-item {
+  display: inline-flex;
+  width: 180rpx;
+  height: 180rpx;
+  margin-right: 16rpx;
+  border-radius: 24rpx;
+  overflow: hidden;
+  background: var(--gallery-surface);
+}
+
+.home-page__recent-image {
+  width: 100%;
+  height: 100%;
+}
+
+.home-page__credit-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 32rpx 28rpx;
+  border-radius: 28rpx;
+  background: var(--gallery-surface);
+  border: 1rpx solid var(--gallery-border);
+}
+
+.home-page__credit-value {
+  font-size: 48rpx;
+  font-weight: 700;
+}
+
+.home-page__credit-meta {
+  font-size: 24rpx;
+  color: var(--gallery-muted);
 }
 </style>

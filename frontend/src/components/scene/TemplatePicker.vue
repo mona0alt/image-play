@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import type { Template } from '../../types/scene'
+import type { ScenePresentation } from '../../utils/scene'
 
 interface Props {
+  scene: ScenePresentation
   templates: Template[]
   selectedKey?: string
 }
@@ -19,16 +21,21 @@ function handleSelect(template: Template) {
 
 <template>
   <view class="template-picker">
-    <text class="picker-title">选择模板</text>
-    <view class="template-list">
+    <text class="template-picker__eyebrow">{{ scene.eyebrow }}</text>
+    <text class="template-picker__title">选择模板</text>
+    <view class="template-picker__list">
       <view
         v-for="t in templates"
         :key="t.key"
         class="template-card"
-        :class="{ active: selectedKey === t.key }"
+        :class="{ 'template-card--active': selectedKey === t.key }"
         @click="handleSelect(t)"
       >
-        <text class="template-name">{{ t.name }}</text>
+        <image v-if="t.sampleImageUrl" class="template-card__image" :src="t.sampleImageUrl" mode="aspectFill" />
+        <view v-else class="template-card__image template-card__image--fallback">
+          <text class="template-card__icon">{{ scene.icon }}</text>
+        </view>
+        <text class="template-card__name">{{ t.name }}</text>
       </view>
     </view>
   </view>
@@ -36,30 +43,63 @@ function handleSelect(template: Template) {
 
 <style scoped>
 .template-picker {
-  padding: 24rpx;
-}
-.picker-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  margin-bottom: 16rpx;
-}
-.template-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 16rpx;
 }
+
+.template-picker__eyebrow {
+  font-size: 20rpx;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gallery-muted);
+}
+
+.template-picker__title {
+  font-size: 40rpx;
+  font-weight: 600;
+}
+
+.template-picker__list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
+}
+
 .template-card {
-  padding: 24rpx 32rpx;
-  background-color: #f1f3f5;
-  border-radius: 12rpx;
-  border: 2rpx solid transparent;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  padding: 16rpx;
+  background: var(--gallery-surface);
+  border-radius: 24rpx;
+  border: 1rpx solid transparent;
 }
-.template-card.active {
-  border-color: #007aff;
-  background-color: #e6f2ff;
+
+.template-card--active {
+  border-color: var(--gallery-text);
 }
-.template-name {
-  font-size: 28rpx;
-  color: #333;
+
+.template-card__image {
+  width: 100%;
+  height: 220rpx;
+  border-radius: 18rpx;
+  background: var(--gallery-surface-soft);
+}
+
+.template-card__image--fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.template-card__icon {
+  font-size: 42rpx;
+  color: var(--gallery-muted);
+}
+
+.template-card__name {
+  font-size: 26rpx;
+  color: var(--gallery-text);
 }
 </style>

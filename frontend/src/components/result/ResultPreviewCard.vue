@@ -1,21 +1,9 @@
-<template>
-  <view class="result-preview-card">
-    <image
-      class="result-image"
-      :src="imageUrl"
-      mode="aspectFit"
-      @click="onPreview"
-    />
-    <view class="actions">
-      <button class="action-btn save" @click="onSave">Save</button>
-      <button class="action-btn share" @click="onShare">Share</button>
-    </view>
-  </view>
-</template>
-
 <script setup lang="ts">
 const props = defineProps<{
   imageUrl: string
+  title: string
+  summary: string
+  chips: string[]
 }>()
 
 const emit = defineEmits<{
@@ -26,49 +14,90 @@ const emit = defineEmits<{
 function onPreview() {
   uni.previewImage({ urls: [props.imageUrl], current: props.imageUrl })
 }
-
-function onSave() {
-  emit('save')
-}
-
-function onShare() {
-  emit('share')
-}
 </script>
 
+<template>
+  <view class="result-card">
+    <image class="result-card__image" :src="imageUrl" mode="aspectFit" @click="onPreview" />
+    <view class="result-card__body">
+      <text class="result-card__label">Creative Summary</text>
+      <text class="result-card__title">{{ title }}</text>
+      <text class="result-card__summary">{{ summary }}</text>
+      <view class="result-card__chips">
+        <text v-for="chip in chips" :key="chip" class="result-card__chip">{{ chip }}</text>
+      </view>
+      <button class="result-card__primary" @click="emit('save')">保存到相册</button>
+      <button class="result-card__secondary" @click="emit('share')">微信分享</button>
+    </view>
+  </view>
+</template>
+
 <style scoped>
-.result-preview-card {
+.result-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding: 16px;
+  gap: 20rpx;
 }
-.result-image {
+
+.result-card__image {
   width: 100%;
-  max-height: 60vh;
-  border-radius: 12px;
-  background-color: #f5f5f5;
+  min-height: 640rpx;
+  border-radius: 32rpx;
+  background: var(--gallery-surface);
 }
-.actions {
+
+.result-card__body {
   display: flex;
-  gap: 12px;
-  width: 100%;
+  flex-direction: column;
+  gap: 16rpx;
 }
-.action-btn {
-  flex: 1;
-  height: 44px;
-  line-height: 44px;
-  text-align: center;
-  border-radius: 8px;
-  font-size: 16px;
-  color: #fff;
-  border: none;
+
+.result-card__label {
+  font-size: 20rpx;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gallery-muted);
 }
-.save {
-  background-color: #07c160;
+
+.result-card__title {
+  font-size: 40rpx;
+  font-weight: 600;
 }
-.share {
-  background-color: #576b95;
+
+.result-card__summary {
+  font-size: 24rpx;
+  line-height: 1.6;
+  color: var(--gallery-muted);
+}
+
+.result-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.result-card__chip {
+  padding: 10rpx 16rpx;
+  border-radius: 999rpx;
+  background: var(--gallery-surface);
+  border: 1rpx solid var(--gallery-border);
+  color: var(--gallery-muted);
+  font-size: 20rpx;
+}
+
+.result-card__primary,
+.result-card__secondary {
+  border-radius: 999rpx;
+}
+
+.result-card__primary {
+  background: var(--gallery-accent);
+  color: #ffffff;
+}
+
+.result-card__secondary {
+  background: transparent;
+  color: var(--gallery-text);
+  border: 1rpx solid var(--gallery-border);
 }
 </style>

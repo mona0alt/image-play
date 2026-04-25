@@ -7,21 +7,34 @@ onLaunch(() => {
 })
 </script>
 
-<template>
-  <view class="content">
-    <text class="title">Image Play</text>
-  </view>
-</template>
-
 <style>
-.content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
+page {
+  --gallery-bg: #fdf8f8;
+  --gallery-surface: #ffffff;
+  --gallery-surface-soft: #f4efed;
+  --gallery-border: rgba(28, 27, 27, 0.08);
+  --gallery-text: #1c1b1b;
+  --gallery-muted: #6d6865;
+  --gallery-accent: #111111;
+  background: var(--gallery-bg);
+  color: var(--gallery-text);
 }
-.title {
-  font-size: 32px;
-  font-weight: bold;
+
+view,
+text,
+button,
+image,
+scroll-view,
+input,
+textarea {
+  box-sizing: border-box;
+}
+
+button {
+  border: none;
+}
+
+button::after {
+  border: none;
 }
 </style>

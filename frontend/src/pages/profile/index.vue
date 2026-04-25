@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
+import HistoryEntryCard from '../../components/profile/HistoryEntryCard.vue'
 import { createOrder, getClientConfig, getHistory, getMe, getPackages, mapHistoryItem } from '../../services/api'
 import { useConfigStore } from '../../store/config'
 import { useUserStore } from '../../store/user'
@@ -63,6 +64,10 @@ function openScene(sceneKey: string) {
   uni.reLaunch({ url: `/pages/scene/index?scene_key=${sceneKey}` })
 }
 
+function openHistory() {
+  uni.navigateTo({ url: '/pages/history/index' })
+}
+
 onMounted(loadProfilePage)
 </script>
 
@@ -74,6 +79,13 @@ onMounted(loadProfilePage)
         <text class="profile-page__meta">余额</text>
         <text class="profile-page__quota">免费额度 {{ model.freeQuota }}</text>
       </view>
+
+      <HistoryEntryCard
+        v-if="model.historyEntry.totalCount > 0"
+        :thumbnails="model.historyEntry.thumbnails"
+        :total-count="model.historyEntry.totalCount"
+        @click="openHistory"
+      />
 
       <view v-if="model.recentWorks.length > 0" class="profile-page__section">
         <text class="profile-page__eyebrow">Recent Works</text>

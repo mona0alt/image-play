@@ -47,5 +47,11 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 
 	r.POST("/api/payments/callback", handlers.PaymentCallbackHandler(billingSvc))
 
+	// Admin routes — TODO: add admin role check middleware in production
+	admin := r.Group("/api/admin")
+	admin.Use(middleware.AuthMiddleware(jwtSecret))
+	admin.GET("/metrics", handlers.DashboardMetricsHandler(db))
+	admin.PUT("/templates/:id/toggle", handlers.ToggleTemplateHandler(db))
+
 	return r
 }

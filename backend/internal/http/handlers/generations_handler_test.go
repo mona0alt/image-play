@@ -309,3 +309,28 @@ func TestCreateGenerationReturnsClientErrorWhenTemplatePresetInvalid(t *testing.
 	require.Equal(t, http.StatusUnprocessableEntity, w.Code)
 	require.Contains(t, w.Body.String(), "template preset invalid")
 }
+
+func TestCreateGenerationReturnsBadRequestForUnsupportedScene(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newMockGenerationRepo()
+	svc := generation.NewService(repo, newMockActiveTemplateLookup())
+	r := gin.New()
+	r.POST("/api/generations", func(c *gin.Context) {
+		c.Set("user_id", int64(1))
+		CreateGenerationHandler(svc)(c)
+	})
+
+	body, _ := json.Marshal(CreateGenerationRequest{
+		ClientRequestID: "req-1",
+		SceneKey:        "unknown-scene",
+		TemplateKey:     "whatever",
+		Fields:          map[string]string{},
+	})
+	req := httptest.NewRequest(http.MethodPost, "/api/generations", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	require.Contains(t, w.Body.String(), "unsupported scene")
+}

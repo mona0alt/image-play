@@ -29,7 +29,7 @@ func (r *mockSceneTemplateRepo) ListActiveByScene(_ context.Context, sceneKey st
 	return items, nil
 }
 
-func TestListSceneTemplatesReturnsOnlyActiveTemplates(t *testing.T) {
+func TestListSceneTemplatesReturnsOnlyRunnableTemplates(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := &mockSceneTemplateRepo{
 		templates: []scenes.Template{
@@ -38,6 +38,7 @@ func TestListSceneTemplatesReturnsOnlyActiveTemplates(t *testing.T) {
 				TemplateKey:    "office-pro",
 				Name:           "通勤职业",
 				FormSchema:     scenes.FormSchema{{Name: "subject_name", Label: "拍摄对象", Type: "text", Required: true}},
+				PromptPreset:   scenes.PromptPreset{BasePrompt: "职业形象照"},
 				SampleImageURL: "https://example.com/portrait-office-pro.png",
 				Active:         true,
 			},
@@ -46,6 +47,13 @@ func TestListSceneTemplatesReturnsOnlyActiveTemplates(t *testing.T) {
 				TemplateKey: "disabled",
 				Name:        "停用模板",
 				Active:      false,
+			},
+			{
+				SceneKey:     scenes.ScenePortrait,
+				TemplateKey:  "invalid-preset",
+				Name:         "空预设模板",
+				PromptPreset: scenes.PromptPreset{},
+				Active:       true,
 			},
 		},
 	}
@@ -73,16 +81,46 @@ func TestListSceneTemplatesReturnsOnlyActiveTemplates(t *testing.T) {
 
 func TestClientConfigReturnsSceneHallOrder(t *testing.T) {
 	gin.SetMode(gin.TestMode)
+	repo := &mockSceneTemplateRepo{
+		templates: []scenes.Template{
+			{
+				SceneKey:     scenes.ScenePortrait,
+				TemplateKey:  "office-pro",
+				PromptPreset: scenes.PromptPreset{BasePrompt: "职业形象照"},
+				Active:       true,
+			},
+			{
+				SceneKey:     scenes.SceneFestival,
+				TemplateKey:  "spring-festival",
+				PromptPreset: scenes.PromptPreset{},
+				Active:       true,
+			},
+			{
+				SceneKey:     scenes.SceneInvitation,
+				TemplateKey:  "wedding-classic",
+				PromptPreset: scenes.PromptPreset{BasePrompt: "婚礼请柬"},
+				Active:       true,
+			},
+			{
+				SceneKey:     scenes.ScenePoster,
+				TemplateKey:  "concert",
+				PromptPreset: scenes.PromptPreset{BasePrompt: "演唱会海报"},
+				Active:       false,
+			},
+		},
+	}
 
+	r := gin.New()
+	r.GET("/api/configs/client", ClientConfigHandler(repo))
+
+	req := httptest.NewRequest(http.MethodGet, "/api/configs/client", nil)
 	w := httptest.NewRecorder()
-	c, _ := gin.CreateTestContext(w)
-
-	ClientConfigHandler(c)
+	r.ServeHTTP(w, req)
 
 	require.Equal(t, http.StatusOK, w.Code)
 	require.JSONEq(t, `{
 		"brand_slogan":"Play with your images",
 		"pricing":{"single":"1.00","pack10":"8.00"},
-		"scene_order":["portrait","festival","invitation","tshirt","poster"]
+		"scene_order":["portrait","invitation"]
 	}`, w.Body.String())
 }

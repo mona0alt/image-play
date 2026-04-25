@@ -25,9 +25,10 @@ func main() {
 		log.Fatalf("database unreachable: %v", err)
 	}
 	repo := postgres.NewGenerationRepo(db)
+	templateRepo := postgres.NewSceneTemplateRepo(db)
 	billingRepo := postgres.NewBillingRepo(db)
 	billingSvc := billing.NewService(billingRepo)
-	job := jobs.NewGenerationJob(repo, nil, nil, billingSvc)
+	job := jobs.NewGenerationJob(repo, templateRepo, nil, nil, billingSvc)
 	runner := worker.NewRunner(repo, job)
 	runner.Run(context.Background())
 }

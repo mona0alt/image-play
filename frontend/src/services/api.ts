@@ -1,5 +1,4 @@
-// TODO: make API_BASE configurable via env at build time
-const API_BASE = 'http://localhost:8080'
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
 
 interface ApiResponse<T> {
   data: T

@@ -1,8 +1,9 @@
-.PHONY: all build build-backend build-frontend test test-backend test-frontend clean lint
+.PHONY: all build build-backend build-frontend test test-backend test-frontend clean lint dev dev-db dev-api dev-worker
 
 DIST_DIR := dist
 BACKEND_DIR := backend
 FRONTEND_DIR := frontend
+INFRA_DIR := infra
 
 all: build
 
@@ -47,6 +48,24 @@ lint-backend:
 
 lint-frontend:
 	cd $(FRONTEND_DIR) && npx vue-tsc --noEmit
+
+# Development helpers
+dev-db:
+	@echo "Starting PostgreSQL..."
+	cd $(INFRA_DIR) && docker compose up -d postgres
+
+dev-api:
+	@echo "Starting API server..."
+	JWT_SECRET=dev-secret DATABASE_URL=postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable cd $(BACKEND_DIR) && go run ./cmd/api
+
+dev-worker:
+	@echo "Starting worker..."
+	DATABASE_URL=postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable cd $(BACKEND_DIR) && go run ./cmd/worker
+
+dev-frontend:
+	@echo "Building frontend for WeChat MP (dev)..."
+	cd $(FRONTEND_DIR) && npm run build -- --platform mp-weixin
+	@echo "Import $(FRONTEND_DIR)/dist/build/mp-weixin into WeChat Developer Tools"
 
 $(DIST_DIR):
 	mkdir -p $(DIST_DIR)

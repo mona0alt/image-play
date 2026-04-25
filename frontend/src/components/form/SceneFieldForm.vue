@@ -76,29 +76,35 @@ function updateField(name: string, value: string) {
 
 <style scoped>
 .scene-field-form {
-  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 .form-item {
-  margin-bottom: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
 }
 .label {
   display: block;
-  font-size: 28rpx;
-  color: #333;
-  margin-bottom: 8rpx;
+  font-size: 24rpx;
+  color: var(--gallery-muted);
 }
 .input,
 .textarea,
 .picker {
-  padding: 16rpx;
-  background-color: #f8f9fa;
-  border-radius: 8rpx;
+  width: 100%;
+  padding: 24rpx;
+  background: var(--gallery-surface);
+  border-radius: 20rpx;
+  border: 1rpx solid var(--gallery-border);
   font-size: 28rpx;
+  color: var(--gallery-text);
 }
 .textarea {
-  height: 160rpx;
+  min-height: 180rpx;
 }
 .picker {
-  color: #333;
+  color: var(--gallery-text);
 }
 </style>

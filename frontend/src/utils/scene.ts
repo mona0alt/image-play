@@ -52,8 +52,18 @@ const SCENE_META: Record<string, Omit<ScenePresentation, 'key'>> = {
 }
 
 export function buildScenePresentation(key: string): ScenePresentation {
-  const fallbackKey = key in SCENE_META ? key : 'portrait'
-  return { key, ...SCENE_META[fallbackKey] }
+  const meta = (key in SCENE_META
+    ? SCENE_META[key as keyof typeof SCENE_META]
+    : SCENE_META.portrait)!
+  return {
+    key,
+    name: meta.name,
+    description: meta.description,
+    eyebrow: meta.eyebrow,
+    icon: meta.icon,
+    tags: meta.tags,
+    accent: meta.accent,
+  }
 }
 
 export function getDefaultSceneKey(order: string[]): string {

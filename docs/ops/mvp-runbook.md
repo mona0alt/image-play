@@ -74,6 +74,53 @@ curl -X PUT -H "Authorization: Bearer <token>" \
 - 服务：使用 systemd/docker 快速重启旧版本
 - 支付：若支付回调异常，检查 `orders` 表状态并手动补单
 
+## 端到端验收清单
+
+按真实业务链路逐项验证：
+
+- [ ] 新用户登录后，免费额度显示为 3 次
+- [ ] 首页显示 5 个场景馆入口（头像写真、节日祝福、请柬邀请、T 恤设计、海报生成）
+- [ ] 点击场景进入模板选择页，表单渲染正确
+- [ ] 头像写真场景可完整提交生成任务
+- [ ] 请柬邀请场景可完整提交生成任务
+- [ ] 支付套餐后余额/次数正确到账
+- [ ] 生成成功后结果页可保存图片、分享、点击再来一张
+- [ ] 历史记录页展示生成记录，状态正确
+- [ ] 埋点事件正常落库（scene_clicked、generation_saved、generation_shared 等）
+- [ ] 后台指标接口 `/api/admin/metrics` 返回数据正常
+
+## 本地联调与冒烟测试
+
+```bash
+# 1. 启动 PostgreSQL
+docker compose -f infra/docker-compose.yml up -d
+
+# 2. 运行迁移
+psql $DATABASE_URL -f backend/migrations/0001_init.sql
+psql $DATABASE_URL -f backend/migrations/0002_scene_templates.sql
+psql $DATABASE_URL -f backend/migrations/0003_tracking_events.sql
+
+# 3. 编译检查
+cd backend && go build ./cmd/api && go build ./cmd/worker
+
+# 4. 单元测试
+go test ./...
+```
+
+**当前验证结果（2026-04-25）：**
+- 后端编译：通过
+- 单元测试：13 个包全部通过
+- 容器联调：未执行（本地 Docker 未运行）
+
+## 首发前文档确认
+
+- [ ] 套餐价格表已确认（运营/商务）
+- [ ] 5 个场景模板样例图已确认（设计）
+- [ ] AI 生成结果审核文案已确认（法务/运营）
+- [ ] 小程序隐私政策与用户协议已更新
+- [ ] 微信支付商户号、API 证书已就绪
+- [ ] COS 存储桶权限和 CDN 域名已配置
+
 ## 日常巡检
 
 - 每日查看 `/api/admin/metrics` 中的支付趋势

@@ -36,7 +36,7 @@ func ListSceneTemplatesHandler(repo SceneTemplateLister) gin.HandlerFunc {
 
 		resp := make([]sceneTemplateResponse, 0, len(items))
 		for _, item := range items {
-			if !item.Active {
+			if !item.IsRunnable() {
 				continue
 			}
 			resp = append(resp, sceneTemplateResponse{

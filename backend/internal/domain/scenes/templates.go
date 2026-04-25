@@ -31,3 +31,7 @@ type Template struct {
 	SampleImageURL string       `json:"sample_image_url,omitempty"`
 	Active         bool         `json:"active"`
 }
+
+func (t Template) IsRunnable() bool {
+	return t.Active && t.PromptPreset.IsUsable()
+}

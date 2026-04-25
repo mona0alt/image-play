@@ -28,7 +28,7 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 	templateRepo := postgres.NewSceneTemplateRepo(db)
 
 	r.POST("/api/auth/login", handlers.LoginHandler(jwtSecret, userSvc))
-	r.GET("/api/configs/client", handlers.ClientConfigHandler)
+	r.GET("/api/configs/client", handlers.ClientConfigHandler(templateRepo))
 	r.GET("/api/scenes/:scene_key/templates", handlers.ListSceneTemplatesHandler(templateRepo))
 
 	authorized := r.Group("/api")

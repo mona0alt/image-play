@@ -51,6 +51,10 @@ func (r *stubGenerationRepo) ListByUser(_ context.Context, userID int64) ([]*gen
 	return nil, nil
 }
 
+func (r *stubGenerationRepo) ListSuccess(_ context.Context, _, _ int) ([]*generation.Generation, int64, error) {
+	return nil, 0, nil
+}
+
 type stubTemplateLoader struct {
 	template *scenes.Template
 	err      error

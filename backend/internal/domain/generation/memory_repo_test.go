@@ -130,3 +130,7 @@ func (r *inMemoryRepo) ListByUser(_ context.Context, userID int64) ([]*Generatio
 	}
 	return results, nil
 }
+
+func (r *inMemoryRepo) ListSuccess(_ context.Context, _, _ int) ([]*Generation, int64, error) {
+	return nil, 0, nil
+}

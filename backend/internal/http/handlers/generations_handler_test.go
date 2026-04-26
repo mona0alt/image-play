@@ -170,6 +170,10 @@ func (r *mockGenerationRepo) ListByUser(_ context.Context, userID int64) ([]*gen
 	return results, nil
 }
 
+func (r *mockGenerationRepo) ListSuccess(_ context.Context, _, _ int) ([]*generation.Generation, int64, error) {
+	return nil, 0, nil
+}
+
 func TestCreateGenerationSuccess(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := newMockGenerationRepo()

@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 
 export interface UserProfile {
   id: number
-  openid: string
+  nickname: string
   balance: number
   free_quota: number
 }

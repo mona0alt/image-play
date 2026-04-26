@@ -1,0 +1,6 @@
+app_env: development
+port: "8080"
+database_url: "postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable"
+jwt_secret: "dev-secret-change-me-in-production"
+wechat_app_id: ""
+wechat_app_secret: ""

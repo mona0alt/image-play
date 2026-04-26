@@ -75,11 +75,11 @@ dev-db:
 
 dev-api:
 	@echo "Starting API server..."
-	cd $(BACKEND_DIR) && JWT_SECRET=dev-secret DATABASE_URL=postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable go run ./cmd/api
+	cd $(BACKEND_DIR) && CONFIG_PATH=config.yaml go run ./cmd/api
 
 dev-worker:
 	@echo "Starting worker..."
-	cd $(BACKEND_DIR) && DATABASE_URL=postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable go run ./cmd/worker
+	cd $(BACKEND_DIR) && CONFIG_PATH=config.yaml go run ./cmd/worker
 
 dev-frontend:
 	@echo "Building frontend for WeChat MP (dev)..."

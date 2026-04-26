@@ -21,6 +21,7 @@ type Repository interface {
 	GetByID(ctx context.Context, id int64) (*User, error)
 	GetByOpenID(ctx context.Context, openID string) (*User, error)
 	Create(ctx context.Context, user *User) error
+	UpdateNickname(ctx context.Context, id int64, nickname string) error
 }
 
 type Service struct {
@@ -29,6 +30,14 @@ type Service struct {
 
 func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
+}
+
+func (s *Service) GetByID(ctx context.Context, id int64) (*User, error) {
+	return s.repo.GetByID(ctx, id)
+}
+
+func (s *Service) UpdateNickname(ctx context.Context, id int64, nickname string) error {
+	return s.repo.UpdateNickname(ctx, id, nickname)
 }
 
 type WechatClient interface {
@@ -55,6 +64,9 @@ func (s *Service) GetOrCreateByWxCode(ctx context.Context, code string, wxClient
 		Balance:   0,
 		FreeQuota: 3,
 		Nickname:  "创作者" + strconv.Itoa(rand.Intn(900)+100),
+	}
+	if account.Nickname == "" {
+		account.Nickname = "创作者000"
 	}
 	if err := s.repo.Create(ctx, account); err != nil {
 		existing, getErr := s.repo.GetByOpenID(ctx, openID)

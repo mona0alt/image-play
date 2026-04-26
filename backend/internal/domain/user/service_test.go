@@ -78,6 +78,13 @@ func (r *mockUserRepo) Create(_ context.Context, user *User) error {
 	return nil
 }
 
+func (r *mockUserRepo) UpdateNickname(_ context.Context, id int64, nickname string) error {
+	if user, ok := r.usersByID[id]; ok {
+		user.Nickname = nickname
+	}
+	return nil
+}
+
 func TestGetOrCreateByWxCodeCreatesUserOnFirstLogin(t *testing.T) {
 	repo := newMockUserRepo()
 	svc := NewService(repo)

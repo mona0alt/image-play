@@ -83,6 +83,13 @@ func (r *mockUserRepo) Create(_ context.Context, account *user.User) error {
 	return nil
 }
 
+func (r *mockUserRepo) UpdateNickname(_ context.Context, id int64, nickname string) error {
+	if account, ok := r.usersByID[id]; ok {
+		account.Nickname = nickname
+	}
+	return nil
+}
+
 func TestLoginReturnsTokenAndUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
 	repo := newMockUserRepo()
@@ -231,4 +238,76 @@ func TestMeReturnsNotFoundWhenUserMissing(t *testing.T) {
 
 	require.Equal(t, http.StatusNotFound, w.Code)
 	require.JSONEq(t, `{"error":"user not found"}`, w.Body.String())
+}
+
+func TestUpdateMeUpdatesNickname(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newMockUserRepo()
+	repo.usersByID[7] = &user.User{
+		ID:        7,
+		OpenID:    "wx-openid-7",
+		Balance:   12,
+		FreeQuota: 2,
+		Nickname:  "OldName",
+	}
+	svc := user.NewService(repo)
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", int64(7))
+		c.Next()
+	})
+	r.PUT("/me", UpdateMeHandler(svc))
+
+	reqBody := `{"nickname":"NewName"}`
+	req := httptest.NewRequest(http.MethodPut, "/me", bytes.NewBufferString(reqBody))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusOK, w.Code)
+
+	var resp User
+	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	require.Equal(t, int64(7), resp.ID)
+	require.Equal(t, "NewName", resp.Nickname)
+	require.Equal(t, int64(12), resp.Balance)
+	require.Equal(t, int64(2), resp.FreeQuota)
+
+	// Verify persisted
+	updated, _ := repo.GetByID(context.Background(), 7)
+	require.Equal(t, "NewName", updated.Nickname)
+}
+
+func TestUpdateMeReturnsUnauthorizedWhenMissingUserID(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	svc := user.NewService(newMockUserRepo())
+	r := gin.New()
+	r.PUT("/me", UpdateMeHandler(svc))
+
+	req := httptest.NewRequest(http.MethodPut, "/me", bytes.NewBufferString(`{"nickname":"Name"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestUpdateMeReturnsBadRequestForInvalidNickname(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newMockUserRepo()
+	repo.usersByID[7] = &user.User{ID: 7}
+	svc := user.NewService(repo)
+	r := gin.New()
+	r.Use(func(c *gin.Context) {
+		c.Set("user_id", int64(7))
+		c.Next()
+	})
+	r.PUT("/me", UpdateMeHandler(svc))
+
+	req := httptest.NewRequest(http.MethodPut, "/me", bytes.NewBufferString(`{"nickname":""}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
 }

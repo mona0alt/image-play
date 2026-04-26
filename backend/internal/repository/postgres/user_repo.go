@@ -62,8 +62,8 @@ func (r *UserRepo) GetByOpenID(ctx context.Context, openID string) (*user.User, 
 
 func (r *UserRepo) Create(ctx context.Context, account *user.User) error {
 	const query = `
-		INSERT INTO users (openid, balance, free_quota, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO users (openid, balance, free_quota, nickname, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		RETURNING id
 	`
 
@@ -72,7 +72,14 @@ func (r *UserRepo) Create(ctx context.Context, account *user.User) error {
 		account.OpenID,
 		account.Balance,
 		account.FreeQuota,
+		account.Nickname,
 		now,
 		now,
 	).Scan(&account.ID)
+}
+
+func (r *UserRepo) UpdateNickname(ctx context.Context, id int64, nickname string) error {
+	const query = `UPDATE users SET nickname = $1, updated_at = $2 WHERE id = $3`
+	_, err := r.db.ExecContext(ctx, query, nickname, time.Now(), id)
+	return err
 }

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { onLaunch } from '@dcloudio/uni-app'
-import { ensureMockSession } from './services/session'
+import { ensureSession } from './services/session'
 
 onLaunch(() => {
-  void ensureMockSession()
+  void ensureSession()
 })
 </script>
 

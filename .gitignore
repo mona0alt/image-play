@@ -6,9 +6,8 @@ vendor/
 frontend/dist
 frontend/unpackage
 backend/bin
-backend/api
-api
-worker
+/api
+/worker
 
 # Environment files
 *.env
@@ -27,7 +26,5 @@ infra/env/*.env
 # OS
 .DS_Store
 Thumbs.db
-api
-worker
 dist/
 .worktrees/

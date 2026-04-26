@@ -16,7 +16,9 @@ infra/env/*.env
 !infra/env/*.env.example
 
 .npmrc
+.superpowers/
 .gocache/
+.claude/
 
 # IDE
 .idea

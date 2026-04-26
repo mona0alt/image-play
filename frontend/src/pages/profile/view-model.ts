@@ -2,6 +2,7 @@ import { takeRecentSuccessItems } from '../../utils/generation'
 import { buildScenePresentation } from '../../utils/scene'
 
 export function buildProfileViewModel(input: {
+  nickname: string | undefined
   profile: { balance: number; free_quota: number } | null
   packages: { code: string; title: string; price: string; count: number }[]
   historyItems: { id: number; sceneKey: string; templateKey: string; status: string; resultUrl: string; createdAt: string }[]
@@ -10,7 +11,7 @@ export function buildProfileViewModel(input: {
   const recentWorks = takeRecentSuccessItems(input.historyItems, 4)
 
   return {
-    accountTitle: '我的作品室',
+    accountTitle: `${input.nickname || '用户'}的作品室`,
     balance: String(input.profile?.balance ?? 0),
     freeQuota: String(input.profile?.free_quota ?? 0),
     recentWorks,

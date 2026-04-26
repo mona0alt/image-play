@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"image-play/internal/domain/user"
+	"image-play/internal/infrastructure/wechat"
 )
 
 type LoginRequest struct {
@@ -27,13 +28,11 @@ type LoginResponse struct {
 	User        User   `json:"user"`
 }
 
-func LoginHandler(jwtSecret string, userSvc *user.Service, wxClient interface{ Code2Session(ctx context.Context, code string) (*struct {
-	OpenID     string
-	SessionKey string
-	UnionID    string
-	ErrCode    int
-	ErrMsg     string
-}, error) }) gin.HandlerFunc {
+type WechatClient interface {
+	Code2Session(ctx context.Context, code string) (*wechat.Code2SessionResponse, error)
+}
+
+func LoginHandler(jwtSecret string, userSvc *user.Service, wxClient WechatClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {

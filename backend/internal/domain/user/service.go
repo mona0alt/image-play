@@ -4,6 +4,8 @@ import (
 	"context"
 	"math/rand"
 	"strconv"
+
+	"image-play/internal/infrastructure/wechat"
 )
 
 type User struct {
@@ -29,13 +31,11 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) GetOrCreateByWxCode(ctx context.Context, code string, wxClient interface{ Code2Session(ctx context.Context, code string) (*struct {
-	OpenID     string
-	SessionKey string
-	UnionID    string
-	ErrCode    int
-	ErrMsg     string
-}, error) }) (*User, bool, error) {
+type WechatClient interface {
+	Code2Session(ctx context.Context, code string) (*wechat.Code2SessionResponse, error)
+}
+
+func (s *Service) GetOrCreateByWxCode(ctx context.Context, code string, wxClient WechatClient) (*User, bool, error) {
 	session, err := wxClient.Code2Session(ctx, code)
 	if err != nil {
 		return nil, false, err

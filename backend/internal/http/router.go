@@ -11,10 +11,11 @@ import (
 	"image-play/internal/domain/user"
 	"image-play/internal/http/handlers"
 	"image-play/internal/http/middleware"
+	"image-play/internal/infrastructure/wechat"
 	"image-play/internal/repository/postgres"
 )
 
-func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
+func NewRouter(db *sql.DB, jwtSecret string, wxClient *wechat.Client) *gin.Engine {
 	r := gin.Default()
 
 	r.GET("/healthz", func(c *gin.Context) {
@@ -27,7 +28,7 @@ func NewRouter(db *sql.DB, jwtSecret string) *gin.Engine {
 	userSvc := user.NewService(userRepo)
 	templateRepo := postgres.NewSceneTemplateRepo(db)
 
-	r.POST("/api/auth/login", handlers.LoginHandler(jwtSecret, userSvc))
+	r.POST("/api/auth/login", handlers.LoginHandler(jwtSecret, userSvc, wxClient))
 	r.GET("/api/configs/client", handlers.ClientConfigHandler(templateRepo))
 	r.GET("/api/scenes/:scene_key/templates", handlers.ListSceneTemplatesHandler(templateRepo))
 

@@ -6,6 +6,7 @@ set -e
 
 BACKEND_DIR="$(cd "$(dirname "$0")/backend" && pwd)"
 CONFIG_PATH="${BACKEND_DIR}/config.yaml"
+API_PORT="${PORT:-8080}"
 
 cd "${BACKEND_DIR}"
 
@@ -16,10 +17,23 @@ if [ ! -f "${CONFIG_PATH}" ]; then
     exit 1
 fi
 
+kill_existing() {
+    local port="$1"
+    local pname="$2"
+    local pids
+    pids=$(lsof -ti:"${port}" 2>/dev/null || true)
+    if [ -n "${pids}" ]; then
+        echo "[start-backend] killing existing ${pname} on port ${port} (pids: ${pids})"
+        echo "${pids}" | xargs kill -9 2>/dev/null || true
+        sleep 1
+    fi
+}
+
 CMD="${1:-api}"
 
 case "${CMD}" in
     api)
+        kill_existing "${API_PORT}" "API server"
         echo "[start-backend] starting API server..."
         echo "[start-backend] config: ${CONFIG_PATH}"
         CONFIG_PATH="${CONFIG_PATH}" go run ./cmd/api
@@ -30,6 +44,7 @@ case "${CMD}" in
         CONFIG_PATH="${CONFIG_PATH}" go run ./cmd/worker
         ;;
     all)
+        kill_existing "${API_PORT}" "API server"
         echo "[start-backend] starting API server and worker..."
         echo "[start-backend] config: ${CONFIG_PATH}"
         CONFIG_PATH="${CONFIG_PATH}" go run ./cmd/api &

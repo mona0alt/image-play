@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
 import HistoryEntryCard from '../../components/profile/HistoryEntryCard.vue'
 import { createOrder, getClientConfig, getHistory, getMe, getPackages, mapHistoryItem } from '../../services/api'
+import { ensureSession } from '../../services/session'
 import { useConfigStore } from '../../store/config'
 import { useUserStore } from '../../store/user'
 import { buildProfileViewModel } from './view-model'
@@ -14,6 +15,7 @@ const historyItems = ref<ReturnType<typeof mapHistoryItem>[]>([])
 const loading = ref(false)
 
 const model = computed(() => buildProfileViewModel({
+  nickname: userStore.profile?.nickname,
   profile: userStore.profile,
   packages: packagesList.value,
   historyItems: historyItems.value,
@@ -35,7 +37,11 @@ async function loadProfilePage() {
     }
     packagesList.value = packagesRes.packages || []
     historyItems.value = (historyRes.items || []).map(mapHistoryItem)
-  } catch (e) {
+  } catch (e: any) {
+    if (e.message === 'Unauthorized') {
+      userStore.clear()
+      return
+    }
     uni.showToast({ title: '个人页加载失败', icon: 'none' })
   }
 }
@@ -72,7 +78,7 @@ onMounted(loadProfilePage)
 </script>
 
 <template>
-  <GalleryPageShell active-tab="profile" title="我的作品室" subtitle="Profile">
+  <GalleryPageShell active-tab="profile" :title="model.accountTitle" subtitle="Profile">
     <view class="profile-page">
       <view class="profile-page__hero">
         <text class="profile-page__balance">{{ model.balance }}</text>

@@ -1,4 +1,7 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8080'
+import { ensureSession } from './session'
+
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://192.168.0.105:8080'
+const LOGIN_URL = '/api/auth/login'
 
 interface ApiResponse<T> {
   data: T
@@ -7,21 +10,28 @@ interface ApiResponse<T> {
   errMsg: string
 }
 
-export function request<T>(options: {
+interface RequestOptions {
   url: string
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
   data?: string | Record<string, unknown> | unknown[]
   headers?: Record<string, string>
-}): Promise<T> {
-  return new Promise((resolve, reject) => {
-    const token = uni.getStorageSync('access_token') || ''
-    const headers: Record<string, string> = {
-      ...(options.headers || {}),
-    }
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`
-    }
+  skipAuth?: boolean
+}
 
+export async function request<T>(options: RequestOptions): Promise<T> {
+  let token = ''
+  if (!options.skipAuth) {
+    token = await ensureSession()
+  }
+
+  const headers: Record<string, string> = {
+    ...(options.headers || {}),
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+
+  return new Promise((resolve, reject) => {
     uni.request({
       url: `${API_BASE}${options.url}`,
       method: options.method || 'GET',
@@ -32,7 +42,7 @@ export function request<T>(options: {
         const response = res as unknown as ApiResponse<T>
         if (response.statusCode === 401) {
           uni.removeStorageSync('access_token')
-          uni.reLaunch({ url: '/pages/home/index' })
+          uni.reLaunch({ url: '/pages/login/index' })
           reject(new Error('Unauthorized'))
           return
         }
@@ -51,10 +61,11 @@ export function request<T>(options: {
 
 export function login(code: string) {
   return request<{ access_token: string; user: { id: number; nickname: string; balance: number; free_quota: number } }>({
-    url: '/api/auth/login',
+    url: LOGIN_URL,
     method: 'POST',
     data: { code },
     headers: { 'Content-Type': 'application/json' },
+    skipAuth: true,
   })
 }
 
@@ -62,6 +73,15 @@ export function getMe() {
   return request<{ id: number; nickname: string; balance: number; free_quota: number }>({
     url: '/api/me',
     method: 'GET',
+  })
+}
+
+export function updateMe(nickname: string) {
+  return request<{ id: number; nickname: string; balance: number; free_quota: number }>({
+    url: '/api/me',
+    method: 'PUT',
+    data: { nickname },
+    headers: { 'Content-Type': 'application/json' },
   })
 }
 

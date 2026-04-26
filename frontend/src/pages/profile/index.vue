@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
 import HistoryEntryCard from '../../components/profile/HistoryEntryCard.vue'
-import { createOrder, getClientConfig, getHistory, getMe, getPackages, mapHistoryItem } from '../../services/api'
+import { createOrder, getClientConfig, getHistory, getMe, getPackages, mapHistoryItem, updateMe } from '../../services/api'
 import { ensureSession } from '../../services/session'
 import { useConfigStore } from '../../store/config'
 import { useUserStore } from '../../store/user'
@@ -74,12 +74,41 @@ function openHistory() {
   uni.navigateTo({ url: '/pages/history/index' })
 }
 
+async function editNickname() {
+  const current = userStore.profile?.nickname || ''
+  const res = await uni.showModal({
+    title: '修改昵称',
+    editable: true,
+    placeholderText: '2-20 个字符',
+    content: current,
+  })
+  if (!res.confirm) return
+  const trimmed = (res.content || '').trim()
+  if (trimmed.length < 2 || trimmed.length > 20) {
+    uni.showToast({ title: '昵称长度需在 2-20 个字符之间', icon: 'none' })
+    return
+  }
+  if (trimmed === current) return
+  try {
+    const updated = await updateMe(trimmed)
+    userStore.setProfile(updated)
+    uni.showToast({ title: '已更新', icon: 'success' })
+  } catch {
+    uni.showToast({ title: '更新失败,请重试', icon: 'none' })
+  }
+}
+
 onMounted(loadProfilePage)
 </script>
 
 <template>
   <GalleryPageShell active-tab="profile" :title="model.accountTitle" subtitle="Profile">
     <view class="profile-page">
+      <view class="profile-page__nickname-row" @click="editNickname">
+        <text class="profile-page__nickname">{{ userStore.profile?.nickname || '用户' }}</text>
+        <text class="profile-page__edit-icon">&#x270E;</text>
+      </view>
+
       <view class="profile-page__hero">
         <text class="profile-page__balance">{{ model.balance }}</text>
         <text class="profile-page__meta">余额</text>
@@ -144,6 +173,24 @@ onMounted(loadProfilePage)
   display: flex;
   flex-direction: column;
   gap: 24rpx;
+}
+
+.profile-page__nickname-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 8rpx 4rpx;
+}
+
+.profile-page__nickname {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: var(--gallery-text);
+}
+
+.profile-page__edit-icon {
+  font-size: 24rpx;
+  color: var(--gallery-muted);
 }
 
 .profile-page__hero {

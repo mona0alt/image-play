@@ -113,6 +113,7 @@ func TestLoginReturnsTokenAndUser(t *testing.T) {
 	require.Equal(t, int64(1), resp.User.ID)
 	require.NotEmpty(t, resp.User.Nickname)
 	require.Equal(t, int64(3), resp.User.FreeQuota)
+	require.True(t, resp.IsNew)
 }
 
 func TestLoginReturnsPersistedUser(t *testing.T) {
@@ -143,6 +144,7 @@ func TestLoginReturnsPersistedUser(t *testing.T) {
 	require.Equal(t, "ExistingUser", resp.User.Nickname)
 	require.Equal(t, int64(7), resp.User.ID)
 	require.Equal(t, int64(2), resp.User.FreeQuota)
+	require.False(t, resp.IsNew)
 }
 
 func TestLoginReusesPersistedUserForSameCode(t *testing.T) {
@@ -173,6 +175,8 @@ func TestLoginReusesPersistedUserForSameCode(t *testing.T) {
 	require.Equal(t, firstLogin.User.ID, secondLogin.User.ID)
 	require.Equal(t, firstLogin.User.Nickname, secondLogin.User.Nickname)
 	require.Equal(t, int64(1), secondLogin.User.ID)
+	require.True(t, firstLogin.IsNew)
+	require.False(t, secondLogin.IsNew)
 }
 
 func TestLoginHandlesWechatError(t *testing.T) {

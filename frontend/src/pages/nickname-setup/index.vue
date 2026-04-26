@@ -47,7 +47,7 @@ function goBack() {
         <input
           v-model="nickname"
           class="nickname-input"
-          type="text"
+          type="nickname"
           placeholder="请输入昵称"
           maxlength="20"
         />

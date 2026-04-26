@@ -27,6 +27,7 @@ type User struct {
 type LoginResponse struct {
 	AccessToken string `json:"access_token"`
 	User        User   `json:"user"`
+	IsNew       bool   `json:"is_new"`
 }
 
 type WechatClient interface {
@@ -41,7 +42,7 @@ func LoginHandler(jwtSecret string, userSvc *user.Service, wxClient WechatClient
 			return
 		}
 
-		account, _, err := userSvc.GetOrCreateByWxCode(c.Request.Context(), req.Code, wxClient)
+		account, isNew, err := userSvc.GetOrCreateByWxCode(c.Request.Context(), req.Code, wxClient)
 		if err != nil {
 			fmt.Printf("[auth] wechat login failed: %v\n", err)
 			c.JSON(http.StatusBadRequest, gin.H{"code": "WECHAT_LOGIN_FAILED", "error": "登录失败，请重试"})
@@ -68,6 +69,7 @@ func LoginHandler(jwtSecret string, userSvc *user.Service, wxClient WechatClient
 				Balance:   int64(account.Balance),
 				FreeQuota: int64(account.FreeQuota),
 			},
+			IsNew: isNew,
 		})
 	}
 }

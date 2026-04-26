@@ -1,6 +1,10 @@
 package user
 
-import "context"
+import (
+	"context"
+	"math/rand"
+	"strconv"
+)
 
 type User struct {
 	ID        int64
@@ -25,8 +29,18 @@ func NewService(repo Repository) *Service {
 	return &Service{repo: repo}
 }
 
-func (s *Service) GetOrCreateByMockCode(ctx context.Context, code string) (*User, bool, error) {
-	openID := "mock-openid-" + code
+func (s *Service) GetOrCreateByWxCode(ctx context.Context, code string, wxClient interface{ Code2Session(ctx context.Context, code string) (*struct {
+	OpenID     string
+	SessionKey string
+	UnionID    string
+	ErrCode    int
+	ErrMsg     string
+}, error) }) (*User, bool, error) {
+	session, err := wxClient.Code2Session(ctx, code)
+	if err != nil {
+		return nil, false, err
+	}
+	openID := session.OpenID
 
 	existing, err := s.repo.GetByOpenID(ctx, openID)
 	if err != nil {
@@ -40,6 +54,7 @@ func (s *Service) GetOrCreateByMockCode(ctx context.Context, code string) (*User
 		OpenID:    openID,
 		Balance:   0,
 		FreeQuota: 3,
+		Nickname:  "创作者" + strconv.Itoa(rand.Intn(900)+100),
 	}
 	if err := s.repo.Create(ctx, account); err != nil {
 		existing, getErr := s.repo.GetByOpenID(ctx, openID)

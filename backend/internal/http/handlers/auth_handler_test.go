@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -13,10 +14,39 @@ import (
 	"image-play/internal/domain/user"
 )
 
+type mockWxClient struct {
+	openID string
+	err    error
+}
+
+func (m *mockWxClient) Code2Session(_ context.Context, _ string) (*struct {
+	OpenID     string
+	SessionKey string
+	UnionID    string
+	ErrCode    int
+	ErrMsg     string
+}, error) {
+	if m.err != nil {
+		return nil, m.err
+	}
+	return &struct {
+		OpenID     string
+		SessionKey string
+		UnionID    string
+		ErrCode    int
+		ErrMsg     string
+	}{
+		OpenID:     m.openID,
+		SessionKey: "session-key",
+	}, nil
+}
+
 type mockUserRepo struct {
 	nextID        int64
 	usersByID     map[int64]*user.User
 	usersByOpenID map[string]*user.User
+	createErr     error
+	onCreate      func(*user.User)
 }
 
 func newMockUserRepo() *mockUserRepo {
@@ -48,6 +78,13 @@ func (r *mockUserRepo) GetByOpenID(_ context.Context, openID string) (*user.User
 }
 
 func (r *mockUserRepo) Create(_ context.Context, account *user.User) error {
+	if r.onCreate != nil {
+		r.onCreate(account)
+	}
+	if r.createErr != nil {
+		return r.createErr
+	}
+
 	account.ID = r.nextID
 	r.nextID++
 
@@ -59,11 +96,13 @@ func (r *mockUserRepo) Create(_ context.Context, account *user.User) error {
 
 func TestLoginReturnsTokenAndUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	svc := user.NewService(newMockUserRepo())
+	repo := newMockUserRepo()
+	svc := user.NewService(repo)
+	wx := &mockWxClient{openID: "wx-openid-1"}
 	r := gin.New()
-	r.POST("/api/auth/login", LoginHandler("test-secret", svc))
+	r.POST("/api/auth/login", LoginHandler("test-secret", svc, wx))
 
-	reqBody := `{"code":"mock-wechat-code"}`
+	reqBody := `{"code":"wx-code-1"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(reqBody))
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -71,25 +110,29 @@ func TestLoginReturnsTokenAndUser(t *testing.T) {
 
 	require.Equal(t, http.StatusOK, w.Code)
 
-	var resp struct {
-		AccessToken string `json:"access_token"`
-		User        struct {
-			ID     int64  `json:"id"`
-			OpenID string `json:"openid"`
-		} `json:"user"`
-	}
+	var resp LoginResponse
 	err := json.Unmarshal(w.Body.Bytes(), &resp)
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.AccessToken)
 	require.Equal(t, int64(1), resp.User.ID)
-	require.Equal(t, "mock-openid-mock-wechat-code", resp.User.OpenID)
+	require.NotEmpty(t, resp.User.Nickname)
+	require.Equal(t, int64(3), resp.User.FreeQuota)
 }
 
 func TestLoginReturnsPersistedUser(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	svc := user.NewService(newMockUserRepo())
+	repo := newMockUserRepo()
+	repo.usersByOpenID["wx-openid-1"] = &user.User{
+		ID:        7,
+		OpenID:    "wx-openid-1",
+		Balance:   12,
+		FreeQuota: 2,
+		Nickname:  "ExistingUser",
+	}
+	svc := user.NewService(repo)
+	wx := &mockWxClient{openID: "wx-openid-1"}
 	r := gin.New()
-	r.POST("/api/auth/login", LoginHandler("test-secret", svc))
+	r.POST("/api/auth/login", LoginHandler("test-secret", svc, wx))
 
 	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"code":"wx-code-1"}`))
 	req.Header.Set("Content-Type", "application/json")
@@ -101,15 +144,18 @@ func TestLoginReturnsPersistedUser(t *testing.T) {
 	var resp LoginResponse
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.NotEmpty(t, resp.AccessToken)
-	require.Equal(t, "mock-openid-wx-code-1", resp.User.Openid)
-	require.Equal(t, int64(3), resp.User.FreeQuota)
+	require.Equal(t, "ExistingUser", resp.User.Nickname)
+	require.Equal(t, int64(7), resp.User.ID)
+	require.Equal(t, int64(2), resp.User.FreeQuota)
 }
 
 func TestLoginReusesPersistedUserForSameCode(t *testing.T) {
 	gin.SetMode(gin.TestMode)
-	svc := user.NewService(newMockUserRepo())
+	repo := newMockUserRepo()
+	svc := user.NewService(repo)
+	wx := &mockWxClient{openID: "wx-openid-1"}
 	r := gin.New()
-	r.POST("/api/auth/login", LoginHandler("test-secret", svc))
+	r.POST("/api/auth/login", LoginHandler("test-secret", svc, wx))
 
 	firstReq := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"code":"wx-code-1"}`))
 	firstReq.Header.Set("Content-Type", "application/json")
@@ -129,8 +175,25 @@ func TestLoginReusesPersistedUserForSameCode(t *testing.T) {
 	require.NoError(t, json.Unmarshal(firstResp.Body.Bytes(), &firstLogin))
 	require.NoError(t, json.Unmarshal(secondResp.Body.Bytes(), &secondLogin))
 	require.Equal(t, firstLogin.User.ID, secondLogin.User.ID)
-	require.Equal(t, firstLogin.User.Openid, secondLogin.User.Openid)
+	require.Equal(t, firstLogin.User.Nickname, secondLogin.User.Nickname)
 	require.Equal(t, int64(1), secondLogin.User.ID)
+}
+
+func TestLoginHandlesWechatError(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+	repo := newMockUserRepo()
+	svc := user.NewService(repo)
+	wx := &mockWxClient{err: errors.New("wechat api error")}
+	r := gin.New()
+	r.POST("/api/auth/login", LoginHandler("test-secret", svc, wx))
+
+	req := httptest.NewRequest(http.MethodPost, "/api/auth/login", bytes.NewBufferString(`{"code":"bad-code"}`))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	r.ServeHTTP(w, req)
+
+	require.Equal(t, http.StatusBadRequest, w.Code)
+	require.JSONEq(t, `{"code":"WECHAT_LOGIN_FAILED","error":"登录失败，请重试"}`, w.Body.String())
 }
 
 func TestMeReturnsUserFromUserRepo(t *testing.T) {
@@ -138,9 +201,10 @@ func TestMeReturnsUserFromUserRepo(t *testing.T) {
 	repo := newMockUserRepo()
 	repo.usersByID[7] = &user.User{
 		ID:        7,
-		OpenID:    "mock-openid-wx-code-7",
+		OpenID:    "wx-openid-7",
 		Balance:   12,
 		FreeQuota: 2,
+		Nickname:  "TestUser",
 	}
 	r := gin.New()
 	r.Use(func(c *gin.Context) {
@@ -158,7 +222,7 @@ func TestMeReturnsUserFromUserRepo(t *testing.T) {
 	var resp User
 	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	require.Equal(t, int64(7), resp.ID)
-	require.Equal(t, "mock-openid-wx-code-7", resp.Openid)
+	require.Equal(t, "TestUser", resp.Nickname)
 	require.Equal(t, int64(12), resp.Balance)
 	require.Equal(t, int64(2), resp.FreeQuota)
 }

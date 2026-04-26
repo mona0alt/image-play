@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,7 +17,7 @@ type LoginRequest struct {
 
 type User struct {
 	ID        int64  `json:"id"`
-	Openid    string `json:"openid"`
+	Nickname  string `json:"nickname"`
 	Balance   int64  `json:"balance"`
 	FreeQuota int64  `json:"free_quota"`
 }
@@ -26,7 +27,13 @@ type LoginResponse struct {
 	User        User   `json:"user"`
 }
 
-func LoginHandler(jwtSecret string, userSvc *user.Service) gin.HandlerFunc {
+func LoginHandler(jwtSecret string, userSvc *user.Service, wxClient interface{ Code2Session(ctx context.Context, code string) (*struct {
+	OpenID     string
+	SessionKey string
+	UnionID    string
+	ErrCode    int
+	ErrMsg     string
+}, error) }) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req LoginRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -34,16 +41,16 @@ func LoginHandler(jwtSecret string, userSvc *user.Service) gin.HandlerFunc {
 			return
 		}
 
-		account, _, err := userSvc.GetOrCreateByMockCode(c.Request.Context(), req.Code)
+		account, _, err := userSvc.GetOrCreateByWxCode(c.Request.Context(), req.Code, wxClient)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to login"})
+			c.JSON(http.StatusBadRequest, gin.H{"code": "WECHAT_LOGIN_FAILED", "error": "登录失败，请重试"})
 			return
 		}
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"sub": strconv.FormatInt(account.ID, 10),
 			"iat": time.Now().Unix(),
-			"exp": time.Now().Add(7 * 24 * time.Hour).Unix(),
+			"exp": time.Now().Add(30 * 24 * time.Hour).Unix(),
 		})
 
 		accessToken, err := token.SignedString([]byte(jwtSecret))
@@ -56,7 +63,7 @@ func LoginHandler(jwtSecret string, userSvc *user.Service) gin.HandlerFunc {
 			AccessToken: accessToken,
 			User: User{
 				ID:        account.ID,
-				Openid:    account.OpenID,
+				Nickname:  account.Nickname,
 				Balance:   int64(account.Balance),
 				FreeQuota: int64(account.FreeQuota),
 			},
@@ -84,7 +91,7 @@ func MeHandler(userRepo user.Repository) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, User{
 			ID:        account.ID,
-			Openid:    account.OpenID,
+			Nickname:  account.Nickname,
 			Balance:   int64(account.Balance),
 			FreeQuota: int64(account.FreeQuota),
 		})

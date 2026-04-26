@@ -35,6 +35,7 @@ func NewRouter(db *sql.DB, jwtSecret string, wxClient *wechat.Client) *gin.Engin
 	authorized := r.Group("/api")
 	authorized.Use(middleware.AuthMiddleware(jwtSecret))
 	authorized.GET("/me", handlers.MeHandler(userRepo))
+	authorized.PUT("/me", handlers.UpdateMeHandler(userSvc))
 
 	assetRepo := postgres.NewAssetRepo(db)
 	assetSvc := assets.NewService(assetRepo)

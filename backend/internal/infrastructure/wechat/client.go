@@ -10,13 +10,15 @@ import (
 
 const defaultBaseURL = "https://api.weixin.qq.com"
 
-type Code2SessionResponse struct {
-	OpenID     string `json:"openid"`
-	SessionKey string `json:"session_key"`
-	UnionID    string `json:"unionid"`
-	ErrCode    int    `json:"errcode"`
-	ErrMsg     string `json:"errmsg"`
+type Code2SessionResult struct {
+	OpenID     string
+	SessionKey string
+	UnionID    string
+	ErrCode    int
+	ErrMsg     string
 }
+
+type Code2SessionResponse = Code2SessionResult
 
 type Client struct {
 	appID      string

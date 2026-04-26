@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"image-play/internal/config"
 	http "image-play/internal/http"
+	"image-play/internal/infrastructure/wechat"
 	"image-play/internal/migration"
 )
 
@@ -16,6 +17,10 @@ func main() {
 	if cfg.JWTSecret == "" {
 		log.Fatal("JWT_SECRET is required")
 	}
+	if cfg.WechatAppID == "" || cfg.WechatAppSecret == "" {
+		log.Println("Warning: WECHAT_APP_ID or WECHAT_APP_SECRET is empty")
+	}
+
 	db, err := sql.Open("postgres", cfg.DatabaseURL)
 	if err != nil {
 		log.Fatal(err)
@@ -26,7 +31,8 @@ func main() {
 		log.Fatalf("migration failed: %v", err)
 	}
 
-	r := http.NewRouter(db, cfg.JWTSecret)
+	wxClient := wechat.NewClient(cfg.WechatAppID, cfg.WechatAppSecret)
+	r := http.NewRouter(db, cfg.JWTSecret, wxClient)
 	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("server failed to start: %v", err)
 	}

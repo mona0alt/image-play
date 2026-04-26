@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"image-play/internal/infrastructure/wechat"
 )
 
 type mockWxClient struct {
@@ -14,23 +15,11 @@ type mockWxClient struct {
 	err    error
 }
 
-func (m *mockWxClient) Code2Session(_ context.Context, _ string) (*struct {
-	OpenID     string
-	SessionKey string
-	UnionID    string
-	ErrCode    int
-	ErrMsg     string
-}, error) {
+func (m *mockWxClient) Code2Session(_ context.Context, _ string) (*wechat.Code2SessionResponse, error) {
 	if m.err != nil {
 		return nil, m.err
 	}
-	return &struct {
-		OpenID     string
-		SessionKey string
-		UnionID    string
-		ErrCode    int
-		ErrMsg     string
-	}{
+	return &wechat.Code2SessionResponse{
 		OpenID:     m.openID,
 		SessionKey: "session-key",
 	}, nil

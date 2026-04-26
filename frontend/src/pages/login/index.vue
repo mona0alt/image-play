@@ -20,7 +20,11 @@ async function handleWechatLogin() {
     }
     const res = await login(loginRes.code)
     uni.setStorageSync('access_token', res.access_token)
-    uni.reLaunch({ url: '/pages/nickname-setup/index' })
+    if (res.is_new) {
+      uni.reLaunch({ url: '/pages/nickname-setup/index' })
+    } else {
+      uni.reLaunch({ url: '/pages/home/index' })
+    }
   } catch (err) {
     console.error('[login] failed:', err)
     uni.showToast({ title: '微信登录失败，请重试', icon: 'none' })

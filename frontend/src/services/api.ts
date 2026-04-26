@@ -60,7 +60,7 @@ export async function request<T>(options: RequestOptions): Promise<T> {
 }
 
 export function login(code: string) {
-  return request<{ access_token: string; user: { id: number; nickname: string; balance: number; free_quota: number } }>({
+  return request<{ access_token: string; user: { id: number; nickname: string; balance: number; free_quota: number }; is_new: boolean }>({
     url: LOGIN_URL,
     method: 'POST',
     data: { code },

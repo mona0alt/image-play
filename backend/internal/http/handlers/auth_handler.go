@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -42,6 +43,7 @@ func LoginHandler(jwtSecret string, userSvc *user.Service, wxClient WechatClient
 
 		account, _, err := userSvc.GetOrCreateByWxCode(c.Request.Context(), req.Code, wxClient)
 		if err != nil {
+			fmt.Printf("[auth] wechat login failed: %v\n", err)
 			c.JSON(http.StatusBadRequest, gin.H{"code": "WECHAT_LOGIN_FAILED", "error": "登录失败，请重试"})
 			return
 		}

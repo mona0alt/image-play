@@ -105,6 +105,8 @@ var migrations = []string{
 	// Explore feed support
 	`ALTER TABLE users ADD COLUMN IF NOT EXISTS nickname VARCHAR(64) DEFAULT '';`,
 	`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR(500) DEFAULT '';`,
+	`UPDATE users SET nickname = '用户' || id WHERE nickname = '' OR nickname IS NULL;`,
+	`ALTER TABLE users ALTER COLUMN nickname SET NOT NULL;`,
 	`CREATE TABLE IF NOT EXISTS likes (
 		id BIGSERIAL PRIMARY KEY,
 		user_id BIGINT NOT NULL REFERENCES users(id),

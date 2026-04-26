@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildProfileViewModel } from './view-model'
 
 const baseInput = {
+  nickname: '小明',
   profile: { balance: 8, free_quota: 3 },
   packages: [{ code: 'pack10', title: '10次包', price: '8.00', count: 10 }],
   historyItems: [
@@ -44,6 +45,7 @@ const baseInput = {
 describe('profile view model', () => {
   it('builds quick scenes, recent works and package cards', () => {
     const vm = buildProfileViewModel({
+      nickname: '小明',
       profile: { balance: 8, free_quota: 3 },
       packages: [{ code: 'pack10', title: '10次包', price: '8.00', count: 10 }],
       historyItems: [
@@ -59,7 +61,7 @@ describe('profile view model', () => {
       sceneOrder: ['portrait', 'poster'],
     })
 
-    expect(vm.accountTitle).toBe('我的作品室')
+    expect(vm.accountTitle).toBe('小明的作品室')
     expect(vm.quickScenes.map((scene) => scene.key)).toEqual(['portrait', 'poster'])
     expect(vm.recentWorks).toHaveLength(1)
     expect(vm.packages[0]?.actionLabel).toBe('购买')

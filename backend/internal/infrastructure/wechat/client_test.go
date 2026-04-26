@@ -62,7 +62,7 @@ func TestCode2SessionWechatError(t *testing.T) {
 	result, err := client.Code2Session(ctx, "bad-code")
 	require.Error(t, err)
 	require.Nil(t, result)
-	require.Contains(t, err.Error(), "WeChat error 40029")
+	require.Contains(t, err.Error(), "wechat error code=40029")
 }
 
 func TestCode2SessionHTTPError(t *testing.T) {

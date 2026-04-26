@@ -61,7 +61,7 @@ func (c *Client) Code2Session(ctx context.Context, code string) (*Code2SessionRe
 	}
 
 	if result.ErrCode != 0 {
-		return nil, fmt.Errorf("WeChat error %d: %s", result.ErrCode, result.ErrMsg)
+		return nil, fmt.Errorf("wechat error code=%d msg=%s", result.ErrCode, result.ErrMsg)
 	}
 
 	return &result, nil

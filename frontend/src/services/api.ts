@@ -50,7 +50,7 @@ export function request<T>(options: {
 }
 
 export function login(code: string) {
-  return request<{ access_token: string; user: { id: number; openid: string; balance: number; free_quota: number } }>({
+  return request<{ access_token: string; user: { id: number; nickname: string; balance: number; free_quota: number } }>({
     url: '/api/auth/login',
     method: 'POST',
     data: { code },
@@ -59,7 +59,7 @@ export function login(code: string) {
 }
 
 export function getMe() {
-  return request<{ id: number; openid: string; balance: number; free_quota: number }>({
+  return request<{ id: number; nickname: string; balance: number; free_quota: number }>({
     url: '/api/me',
     method: 'GET',
   })

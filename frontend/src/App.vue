@@ -1,9 +1,26 @@
 <script setup lang="ts">
 import { onLaunch } from '@dcloudio/uni-app'
-import { ensureSession } from './services/session'
 
 onLaunch(() => {
-  void ensureSession()
+  const token = uni.getStorageSync('access_token') as string | undefined
+  if (!token) {
+    uni.reLaunch({ url: '/pages/login/index' })
+  }
+
+  // 导航拦截：未登录时阻止跳转到非登录页
+  const methods = ['navigateTo', 'redirectTo', 'switchTab', 'reLaunch'] as const
+  methods.forEach((method) => {
+    uni.addInterceptor(method, {
+      invoke(args) {
+        const token = uni.getStorageSync('access_token') as string | undefined
+        const url = (args as any).url || ''
+        if (!token && !url.includes('/pages/login')) {
+          uni.reLaunch({ url: '/pages/login/index' })
+          return false
+        }
+      },
+    })
+  })
 })
 </script>
 

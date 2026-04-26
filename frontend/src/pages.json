@@ -9,6 +9,22 @@
       }
     },
     {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "SCENE GALLERY",
+        "navigationBarBackgroundColor": "#fdf8f8",
+        "backgroundColor": "#fdf8f8"
+      }
+    },
+    {
+      "path": "pages/nickname-setup/index",
+      "style": {
+        "navigationBarTitleText": "设置昵称",
+        "navigationBarBackgroundColor": "#fdf8f8",
+        "backgroundColor": "#fdf8f8"
+      }
+    },
+    {
       "path": "pages/scene/index",
       "style": {
         "navigationBarTitleText": "创作",

@@ -116,6 +116,24 @@ var migrations = []string{
 	);`,
 	`CREATE INDEX IF NOT EXISTS idx_likes_generation_id ON likes(generation_id);`,
 	`CREATE INDEX IF NOT EXISTS idx_likes_user_id ON likes(user_id);`,
+
+	`CREATE TABLE IF NOT EXISTS explore_assets (
+		id BIGSERIAL PRIMARY KEY,
+		image_url VARCHAR(500) NOT NULL,
+		scene_key VARCHAR(32) NOT NULL DEFAULT '',
+		prompt TEXT NOT NULL DEFAULT '',
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+	);`,
+	`CREATE UNIQUE INDEX IF NOT EXISTS idx_explore_assets_image_url ON explore_assets(image_url);`,
+	`CREATE TABLE IF NOT EXISTS explore_likes (
+		id BIGSERIAL PRIMARY KEY,
+		user_id BIGINT NOT NULL REFERENCES users(id),
+		explore_asset_id BIGINT NOT NULL REFERENCES explore_assets(id),
+		created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE (user_id, explore_asset_id)
+	);`,
+	`CREATE INDEX IF NOT EXISTS idx_explore_likes_asset_id ON explore_likes(explore_asset_id);`,
+	`CREATE INDEX IF NOT EXISTS idx_explore_likes_user_id ON explore_likes(user_id);`,
 }
 
 var seedSQL = []string{

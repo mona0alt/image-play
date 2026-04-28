@@ -6,13 +6,13 @@ describe('navigation', () => {
     expect(PRIMARY_TABS.map((tab) => tab.key)).toEqual([
       'gallery',
       'create',
-      'history',
+      'explore',
       'profile',
     ])
     expect(PRIMARY_TABS.map((tab) => tab.path)).toEqual([
       '/pages/home/index',
       '/pages/scene/index',
-      '/pages/history/index',
+      '/pages/explore/index',
       '/pages/profile/index',
     ])
   })

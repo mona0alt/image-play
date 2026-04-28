@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/gin-gonic/gin"
+	"image-play/internal/config"
 	"image-play/internal/domain/assets"
 	"image-play/internal/domain/billing"
 	"image-play/internal/domain/generation"
@@ -16,7 +17,7 @@ import (
 	"image-play/internal/repository/postgres"
 )
 
-func NewRouter(db *sql.DB, jwtSecret string, wxClient *wechat.Client, signer storage.Signer) *gin.Engine {
+func NewRouter(db *sql.DB, cfg *config.Config, wxClient *wechat.Client, signer storage.Signer) *gin.Engine {
 	r := gin.Default()
 
 	r.GET("/healthz", func(c *gin.Context) {
@@ -29,12 +30,12 @@ func NewRouter(db *sql.DB, jwtSecret string, wxClient *wechat.Client, signer sto
 	userSvc := user.NewService(userRepo)
 	templateRepo := postgres.NewSceneTemplateRepo(db)
 
-	r.POST("/api/auth/login", handlers.LoginHandler(jwtSecret, userSvc, wxClient))
+	r.POST("/api/auth/login", handlers.LoginHandler(cfg.JWTSecret, userSvc, wxClient))
 	r.GET("/api/configs/client", handlers.ClientConfigHandler(templateRepo))
 	r.GET("/api/scenes/:scene_key/templates", handlers.ListSceneTemplatesHandler(templateRepo))
 
 	authorized := r.Group("/api")
-	authorized.Use(middleware.AuthMiddleware(jwtSecret))
+	authorized.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	authorized.GET("/me", handlers.MeHandler(userRepo))
 	authorized.PUT("/me", handlers.UpdateMeHandler(userSvc))
 
@@ -55,12 +56,13 @@ func NewRouter(db *sql.DB, jwtSecret string, wxClient *wechat.Client, signer sto
 
 	authorized.GET("/explore/feed", handlers.ExploreFeedHandler(db, signer))
 	authorized.POST("/explore/like", handlers.ExploreLikeHandler(db))
+	authorized.POST("/face-reading", handlers.FaceReadingHandler(cfg.DMXAPIKey, cfg.DMXAPIBaseURL, cfg.DMXModel))
 
 	r.POST("/api/payments/callback", handlers.PaymentCallbackHandler(billingSvc))
 
 	// Admin routes — TODO: add admin role check middleware in production
 	admin := r.Group("/api/admin")
-	admin.Use(middleware.AuthMiddleware(jwtSecret))
+	admin.Use(middleware.AuthMiddleware(cfg.JWTSecret))
 	admin.GET("/metrics", handlers.DashboardMetricsHandler(db))
 	admin.PUT("/templates/:id/toggle", handlers.ToggleTemplateHandler(db))
 

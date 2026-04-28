@@ -44,7 +44,7 @@ func main() {
 	}
 
 	wxClient := wechat.NewClient(cfg.WechatAppID, cfg.WechatAppSecret)
-	r := http.NewRouter(db, cfg.JWTSecret, wxClient, signer)
+	r := http.NewRouter(db, cfg, wxClient, signer)
 	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("server failed to start: %v", err)
 	}

@@ -9,6 +9,14 @@
       }
     },
     {
+      "path": "pages/face-reading/index",
+      "style": {
+        "navigationBarTitleText": "面相分析",
+        "navigationBarBackgroundColor": "#fdf8f8",
+        "backgroundColor": "#fdf8f8"
+      }
+    },
+    {
       "path": "pages/login/index",
       "style": {
         "navigationBarTitleText": "SCENE GALLERY",

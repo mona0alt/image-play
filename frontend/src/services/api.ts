@@ -234,11 +234,11 @@ export function getExploreFeed(page = 1, pageSize = 10) {
   }))
 }
 
-export function likeExploreItem(generationId: number, action: 'like' | 'unlike') {
+export function likeExploreItem(exploreAssetId: number, action: 'like' | 'unlike') {
   return request<{ success: boolean; like_count: number }>({
     url: '/api/explore/like',
     method: 'POST',
-    data: { generation_id: generationId, action },
+    data: { explore_asset_id: exploreAssetId, action },
     headers: { 'Content-Type': 'application/json' },
   })
 }

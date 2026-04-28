@@ -242,3 +242,12 @@ export function likeExploreItem(exploreAssetId: number, action: 'like' | 'unlike
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+export function faceReading(imageBase64: string) {
+  return request<{ result: string }>({
+    url: '/api/face-reading',
+    method: 'POST',
+    data: { image_base64: imageBase64 },
+    headers: { 'Content-Type': 'application/json' },
+  })
+}

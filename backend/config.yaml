@@ -1,0 +1,15 @@
+app_env: development
+port: "8080"
+database_url: "postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable"
+jwt_secret: "dev-secret-change-me-in-production"
+wechat_app_id: "wx91ef8f49dcb156fb"
+wechat_app_secret: "f399fc10ec66848329733f3de3644ef9"
+oss_endpoint: "oss-cn-beijing.aliyuncs.com"
+oss_bucket: "imag-play"
+oss_access_key_id: "YOUR_ACCESS_KEY_ID"
+oss_access_key_secret: "YOUR_ACCESS_KEY_SECRET"
+
+# DMXAPI 配置（面相分析）
+dmx_api_key: ""
+dmx_api_base_url: "https://api.moonshot.cn/v1"
+dmx_model: "kimi-k2.6"

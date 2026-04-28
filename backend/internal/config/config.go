@@ -18,6 +18,9 @@ type Config struct {
 	OSSBucket          string `yaml:"oss_bucket"`
 	OSSAccessKeyID     string `yaml:"oss_access_key_id"`
 	OSSAccessKeySecret string `yaml:"oss_access_key_secret"`
+	DMXAPIKey          string `yaml:"dmx_api_key"`
+	DMXAPIBaseURL      string `yaml:"dmx_api_base_url"`
+	DMXModel           string `yaml:"dmx_model"`
 }
 
 func Load() *Config {
@@ -69,6 +72,15 @@ func Load() *Config {
 	if v := os.Getenv("OSS_ACCESS_KEY_SECRET"); v != "" {
 		cfg.OSSAccessKeySecret = v
 	}
+	if v := os.Getenv("DMX_API_KEY"); v != "" {
+		cfg.DMXAPIKey = v
+	}
+	if v := os.Getenv("DMX_API_BASE_URL"); v != "" {
+		cfg.DMXAPIBaseURL = v
+	}
+	if v := os.Getenv("DMX_MODEL"); v != "" {
+		cfg.DMXModel = v
+	}
 
 	return &cfg
 }
@@ -85,6 +97,9 @@ func loadFromEnv() *Config {
 		OSSBucket:          getEnv("OSS_BUCKET", ""),
 		OSSAccessKeyID:     getEnv("OSS_ACCESS_KEY_ID", ""),
 		OSSAccessKeySecret: getEnv("OSS_ACCESS_KEY_SECRET", ""),
+		DMXAPIKey:          getEnv("DMX_API_KEY", ""),
+		DMXAPIBaseURL:      getEnv("DMX_API_BASE_URL", "https://api.moonshot.cn/v1"),
+		DMXModel:           getEnv("DMX_MODEL", "kimi-k2.6"),
 	}
 }
 

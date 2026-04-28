@@ -1,0 +1,10 @@
+app_env: development
+port: "8080"
+database_url: "postgres://postgres:postgres@localhost:5432/image_play?sslmode=disable"
+jwt_secret: "change-me-to-a-long-random-string"
+wechat_app_id: "your-wechat-app-id"
+wechat_app_secret: "your-wechat-app-secret"
+oss_endpoint: "oss-cn-beijing.aliyuncs.com"
+oss_bucket: "your-bucket-name"
+oss_access_key_id: "your-oss-access-key-id"
+oss_access_key_secret: "your-oss-access-key-secret"

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"image-play/internal/infrastructure/storage"
 )
 
 type ExploreItem struct {
@@ -27,7 +28,7 @@ type ExploreUser struct {
 	AvatarURL string `json:"avatar_url"`
 }
 
-func ExploreFeedHandler(db *sql.DB) gin.HandlerFunc {
+func ExploreFeedHandler(db *sql.DB, signer storage.Signer) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		pageStr := c.Query("page")
 		pageSizeStr := c.Query("page_size")
@@ -69,6 +70,9 @@ func ExploreFeedHandler(db *sql.DB) gin.HandlerFunc {
 			)
 			if err != nil {
 				continue
+			}
+			if signer != nil {
+				item.ImageURL = signer.SignImageURL(item.ImageURL)
 			}
 			item.ThumbnailURL = item.ImageURL
 			item.Description = ""

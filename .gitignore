@@ -14,6 +14,8 @@ backend/bin
 !.env.example
 infra/env/*.env
 !infra/env/*.env.example
+backend/config.yaml
+!backend/config.yaml.example
 
 .npmrc
 .superpowers/

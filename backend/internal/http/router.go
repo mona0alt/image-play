@@ -11,11 +11,12 @@ import (
 	"image-play/internal/domain/user"
 	"image-play/internal/http/handlers"
 	"image-play/internal/http/middleware"
+	"image-play/internal/infrastructure/storage"
 	"image-play/internal/infrastructure/wechat"
 	"image-play/internal/repository/postgres"
 )
 
-func NewRouter(db *sql.DB, jwtSecret string, wxClient *wechat.Client) *gin.Engine {
+func NewRouter(db *sql.DB, jwtSecret string, wxClient *wechat.Client, signer storage.Signer) *gin.Engine {
 	r := gin.Default()
 
 	r.GET("/healthz", func(c *gin.Context) {
@@ -52,7 +53,7 @@ func NewRouter(db *sql.DB, jwtSecret string, wxClient *wechat.Client) *gin.Engin
 	trackingSvc := tracking.NewService(trackingRepo)
 	authorized.POST("/tracking/events", handlers.TrackingEventsHandler(trackingSvc))
 
-	authorized.GET("/explore/feed", handlers.ExploreFeedHandler(db))
+	authorized.GET("/explore/feed", handlers.ExploreFeedHandler(db, signer))
 	authorized.POST("/explore/like", handlers.ExploreLikeHandler(db))
 
 	r.POST("/api/payments/callback", handlers.PaymentCallbackHandler(billingSvc))

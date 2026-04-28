@@ -57,6 +57,10 @@ function openProfile() {
   uni.reLaunch({ url: '/pages/profile/index' })
 }
 
+function openFaceReading() {
+  uni.navigateTo({ url: '/pages/face-reading/index' })
+}
+
 onMounted(loadPage)
 </script>
 
@@ -72,6 +76,17 @@ onMounted(loadPage)
 
     <view v-else-if="!loading" class="home-page">
       <SceneHeroCard :scene="model.heroScene" @tap="openCreate" />
+
+      <view class="home-page__section">
+        <text class="home-page__eyebrow">AI Tools</text>
+        <view class="home-page__tool-card" @click="openFaceReading">
+          <view class="home-page__tool-info">
+            <text class="home-page__tool-title">面相分析</text>
+            <text class="home-page__tool-desc">上传照片，AI 解析面相运势</text>
+          </view>
+          <text class="home-page__tool-arrow">›</text>
+        </view>
+      </view>
 
       <view class="home-page__section">
         <text class="home-page__eyebrow">Curated Collection</text>
@@ -170,6 +185,37 @@ onMounted(loadPage)
 
 .home-page__credit-meta {
   font-size: 24rpx;
+  color: var(--gallery-muted);
+}
+
+.home-page__tool-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx;
+  border-radius: 28rpx;
+  background: var(--gallery-surface);
+  border: 1rpx solid var(--gallery-border);
+}
+
+.home-page__tool-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.home-page__tool-title {
+  font-size: 32rpx;
+  font-weight: 600;
+}
+
+.home-page__tool-desc {
+  font-size: 24rpx;
+  color: var(--gallery-muted);
+}
+
+.home-page__tool-arrow {
+  font-size: 40rpx;
   color: var(--gallery-muted);
 }
 </style>

@@ -12,8 +12,12 @@ type Config struct {
 	Port            string `yaml:"port"`
 	DatabaseURL     string `yaml:"database_url"`
 	JWTSecret       string `yaml:"jwt_secret"`
-	WechatAppID     string `yaml:"wechat_app_id"`
-	WechatAppSecret string `yaml:"wechat_app_secret"`
+	WechatAppID        string `yaml:"wechat_app_id"`
+	WechatAppSecret    string `yaml:"wechat_app_secret"`
+	OSSEndpoint        string `yaml:"oss_endpoint"`
+	OSSBucket          string `yaml:"oss_bucket"`
+	OSSAccessKeyID     string `yaml:"oss_access_key_id"`
+	OSSAccessKeySecret string `yaml:"oss_access_key_secret"`
 }
 
 func Load() *Config {
@@ -53,6 +57,18 @@ func Load() *Config {
 	if v := os.Getenv("WECHAT_APP_SECRET"); v != "" {
 		cfg.WechatAppSecret = v
 	}
+	if v := os.Getenv("OSS_ENDPOINT"); v != "" {
+		cfg.OSSEndpoint = v
+	}
+	if v := os.Getenv("OSS_BUCKET"); v != "" {
+		cfg.OSSBucket = v
+	}
+	if v := os.Getenv("OSS_ACCESS_KEY_ID"); v != "" {
+		cfg.OSSAccessKeyID = v
+	}
+	if v := os.Getenv("OSS_ACCESS_KEY_SECRET"); v != "" {
+		cfg.OSSAccessKeySecret = v
+	}
 
 	return &cfg
 }
@@ -63,8 +79,12 @@ func loadFromEnv() *Config {
 		Port:            getEnv("PORT", "8080"),
 		DatabaseURL:     getEnv("DATABASE_URL", ""),
 		JWTSecret:       getEnv("JWT_SECRET", ""),
-		WechatAppID:     getEnv("WECHAT_APP_ID", ""),
-		WechatAppSecret: getEnv("WECHAT_APP_SECRET", ""),
+		WechatAppID:        getEnv("WECHAT_APP_ID", ""),
+		WechatAppSecret:    getEnv("WECHAT_APP_SECRET", ""),
+		OSSEndpoint:        getEnv("OSS_ENDPOINT", ""),
+		OSSBucket:          getEnv("OSS_BUCKET", ""),
+		OSSAccessKeyID:     getEnv("OSS_ACCESS_KEY_ID", ""),
+		OSSAccessKeySecret: getEnv("OSS_ACCESS_KEY_SECRET", ""),
 	}
 }
 

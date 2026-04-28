@@ -42,16 +42,13 @@ func ExploreFeedHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		query := `
-			SELECT g.id, g.user_id, g.scene_key, g.template_key, g.result_url, g.prompt, g.created_at,
-				u.nickname, u.avatar_url,
+			SELECT ea.id, ea.image_url, ea.scene_key, ea.prompt, ea.created_at,
 				COALESCE(l.cnt, 0) as like_count
-			FROM generations g
-			JOIN users u ON u.id = g.user_id
+			FROM explore_assets ea
 			LEFT JOIN (
-				SELECT generation_id, COUNT(*) as cnt FROM likes GROUP BY generation_id
-			) l ON l.generation_id = g.id
-			WHERE g.status = 'success' AND g.result_url IS NOT NULL AND g.result_url != ''
-			ORDER BY g.created_at DESC
+				SELECT explore_asset_id, COUNT(*) as cnt FROM explore_likes GROUP BY explore_asset_id
+			) l ON l.explore_asset_id = ea.id
+			ORDER BY ea.created_at DESC
 			LIMIT $1 OFFSET $2
 		`
 		offset := (page - 1) * pageSize
@@ -65,20 +62,16 @@ func ExploreFeedHandler(db *sql.DB) gin.HandlerFunc {
 		items := []ExploreItem{}
 		for rows.Next() {
 			var item ExploreItem
-			var userID int64
 			var createdAt sql.NullTime
-			var templateKey string
 			err := rows.Scan(
-				&item.ID, &userID, &item.SceneKey, &templateKey, &item.ImageURL, &item.Prompt, &createdAt,
-				&item.User.Nickname, &item.User.AvatarURL,
+				&item.ID, &item.ImageURL, &item.SceneKey, &item.Prompt, &createdAt,
 				&item.LikeCount,
 			)
 			if err != nil {
 				continue
 			}
-			item.User.ID = strconv.FormatInt(userID, 10)
 			item.ThumbnailURL = item.ImageURL
-			item.Description = item.Prompt
+			item.Description = ""
 			if createdAt.Valid {
 				item.CreatedAt = createdAt.Time.Format("2006-01-02T15:04:05Z")
 			}
@@ -88,26 +81,24 @@ func ExploreFeedHandler(db *sql.DB) gin.HandlerFunc {
 				if userIDVal, ok := uid.(int64); ok {
 					var existsLike bool
 					_ = db.QueryRowContext(c.Request.Context(),
-						"SELECT EXISTS(SELECT 1 FROM likes WHERE user_id = $1 AND generation_id = $2)",
+						"SELECT EXISTS(SELECT 1 FROM explore_likes WHERE user_id = $1 AND explore_asset_id = $2)",
 						userIDVal, item.ID,
 					).Scan(&existsLike)
 					item.IsLiked = existsLike
 				}
 			}
 
-			// Fallback nickname/avatar
-			if item.User.Nickname == "" {
-				item.User.Nickname = "用户" + item.User.ID
-			}
-			if item.User.AvatarURL == "" {
-				item.User.AvatarURL = "https://api.dicebear.com/7.x/avataaars/svg?seed=" + item.User.ID
+			item.User = ExploreUser{
+				ID:        "0",
+				Nickname:  "",
+				AvatarURL: "",
 			}
 
 			items = append(items, item)
 		}
 
 		var total int64
-		countQuery := `SELECT COUNT(*) FROM generations WHERE status = 'success' AND result_url IS NOT NULL AND result_url != ''`
+		countQuery := `SELECT COUNT(*) FROM explore_assets`
 		_ = db.QueryRowContext(c.Request.Context(), countQuery).Scan(&total)
 
 		c.JSON(http.StatusOK, gin.H{
@@ -123,8 +114,8 @@ func ExploreFeedHandler(db *sql.DB) gin.HandlerFunc {
 }
 
 type LikeRequest struct {
-	GenerationID int64  `json:"generation_id"`
-	Action       string `json:"action"`
+	ExploreAssetID int64  `json:"explore_asset_id"`
+	Action         string `json:"action"`
 }
 
 func ExploreLikeHandler(db *sql.DB) gin.HandlerFunc {
@@ -153,8 +144,8 @@ func ExploreLikeHandler(db *sql.DB) gin.HandlerFunc {
 
 		if req.Action == "like" {
 			_, err := db.ExecContext(c.Request.Context(),
-				"INSERT INTO likes (user_id, generation_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
-				uid, req.GenerationID,
+				"INSERT INTO explore_likes (user_id, explore_asset_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+				uid, req.ExploreAssetID,
 			)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to like"})
@@ -162,8 +153,8 @@ func ExploreLikeHandler(db *sql.DB) gin.HandlerFunc {
 			}
 		} else {
 			_, err := db.ExecContext(c.Request.Context(),
-				"DELETE FROM likes WHERE user_id = $1 AND generation_id = $2",
-				uid, req.GenerationID,
+				"DELETE FROM explore_likes WHERE user_id = $1 AND explore_asset_id = $2",
+				uid, req.ExploreAssetID,
 			)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to unlike"})
@@ -173,7 +164,7 @@ func ExploreLikeHandler(db *sql.DB) gin.HandlerFunc {
 
 		var count int64
 		_ = db.QueryRowContext(c.Request.Context(),
-			"SELECT COUNT(*) FROM likes WHERE generation_id = $1", req.GenerationID,
+			"SELECT COUNT(*) FROM explore_likes WHERE explore_asset_id = $1", req.ExploreAssetID,
 		).Scan(&count)
 
 		c.JSON(http.StatusOK, gin.H{

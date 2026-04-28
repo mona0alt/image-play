@@ -45,20 +45,6 @@ function handleSameStyle() {
       </view>
     </view>
 
-    <!-- Bottom-left info card -->
-    <view class="card__info">
-      <view class="card__info-inner">
-        <view class="card__author">
-          <image
-            class="card__avatar"
-            :src="item.user.avatarUrl"
-            mode="aspectFill"
-          />
-          <text class="card__nickname">@{{ item.user.nickname }}</text>
-        </view>
-        <text class="card__description">{{ item.description }}</text>
-      </view>
-    </view>
   </view>
 </template>
 
@@ -123,49 +109,4 @@ function handleSameStyle() {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
-.card__info {
-  position: absolute;
-  bottom: 100px;
-  left: 16px;
-  right: 80px;
-  z-index: 10;
-}
-
-.card__info-inner {
-  background: rgba(0, 0, 0, 0.4);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  padding: 16px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  max-width: 280px;
-}
-
-.card__author {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.card__avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: #ffffff;
-}
-
-.card__nickname {
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
-
-.card__description {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
-  line-height: 1.5;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-}
 </style>

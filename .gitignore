@@ -6,6 +6,8 @@ vendor/
 frontend/dist
 frontend/unpackage
 backend/bin
+backend/api
+backend/worker
 /api
 /worker
 

@@ -12,12 +12,13 @@ import (
 	"image-play/internal/domain/user"
 	"image-play/internal/http/handlers"
 	"image-play/internal/http/middleware"
+	"image-play/internal/infrastructure/llm"
 	"image-play/internal/infrastructure/storage"
 	"image-play/internal/infrastructure/wechat"
 	"image-play/internal/repository/postgres"
 )
 
-func NewRouter(db *sql.DB, cfg *config.Config, wxClient *wechat.Client, signer storage.Signer) *gin.Engine {
+func NewRouter(db *sql.DB, cfg *config.Config, wxClient *wechat.Client, signer storage.Signer, textClient llm.TextClient) *gin.Engine {
 	r := gin.Default()
 
 	r.GET("/healthz", func(c *gin.Context) {
@@ -56,7 +57,7 @@ func NewRouter(db *sql.DB, cfg *config.Config, wxClient *wechat.Client, signer s
 
 	authorized.GET("/explore/feed", handlers.ExploreFeedHandler(db, signer))
 	authorized.POST("/explore/like", handlers.ExploreLikeHandler(db))
-	authorized.POST("/face-reading", handlers.FaceReadingHandler(cfg.DMXAPIKey, cfg.DMXAPIBaseURL, cfg.DMXModel))
+	authorized.POST("/face-reading", handlers.FaceReadingHandler(textClient))
 
 	r.POST("/api/payments/callback", handlers.PaymentCallbackHandler(billingSvc))
 

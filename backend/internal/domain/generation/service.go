@@ -26,6 +26,7 @@ type CreateGenerationInput struct {
 	SceneKey        string
 	TemplateKey     string
 	Fields          map[string]string
+	Prompt          string
 	SourceAssetID   *int64
 }
 
@@ -68,6 +69,31 @@ func NewService(repo Repository, templates TemplateLookup) *Service {
 }
 
 func (s *Service) CreateGeneration(ctx context.Context, input CreateGenerationInput) (int64, error) {
+	// Pure prompt mode: skip template validation
+	if input.Prompt != "" {
+		now := time.Now()
+		g := &Generation{
+			UserID:          input.UserID,
+			ClientRequestID: input.ClientRequestID,
+			SceneKey:        input.SceneKey,
+			TemplateKey:     input.TemplateKey,
+			Fields:          input.Fields,
+			Prompt:          input.Prompt,
+			SourceAssetID:   input.SourceAssetID,
+			Status:          "queued",
+			CreatedAt:       now,
+			UpdatedAt:       now,
+		}
+		if err := s.repo.Create(ctx, g); err != nil {
+			if isUniqueViolation(err) {
+				return 0, ErrActiveGenerationExists
+			}
+			return 0, err
+		}
+		return g.ID, nil
+	}
+
+	// Legacy template mode
 	if s.templates == nil {
 		return 0, errors.New("template lookup not configured")
 	}

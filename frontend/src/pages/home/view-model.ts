@@ -1,4 +1,3 @@
-import type { UserProfile } from '../../store/user'
 import { takeRecentSuccessItems } from '../../utils/generation'
 import { buildHomeEntryCards } from './entry-cards'
 
@@ -14,13 +13,9 @@ interface HistoryLike {
 export function buildHomeViewModel(input: {
   sceneOrder: string[]
   historyItems: HistoryLike[]
-  profile: Pick<UserProfile, 'balance' | 'free_quota'> | null
 }) {
   return {
     entryCards: buildHomeEntryCards(input.sceneOrder),
     recentWorks: takeRecentSuccessItems(input.historyItems, 3),
-    creditTitle: '剩余额度',
-    creditValue: String(input.profile?.free_quota ?? 0),
-    balanceValue: String(input.profile?.balance ?? 0),
   }
 }

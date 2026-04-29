@@ -99,6 +99,12 @@ func (j *GenerationJob) Execute(ctx context.Context, g *generation.Generation) e
 }
 
 func (j *GenerationJob) buildPrompt(ctx context.Context, g *generation.Generation) (string, error) {
+	// Pure prompt mode: use user-provided prompt directly
+	if g.Prompt != "" {
+		return g.Prompt, nil
+	}
+
+	// Legacy template mode
 	template, err := j.templateRepo.GetActiveTemplate(ctx, g.SceneKey, g.TemplateKey)
 	if err != nil {
 		return "", fmt.Errorf("load active template: %w", err)

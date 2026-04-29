@@ -11,9 +11,10 @@ import (
 
 type CreateGenerationRequest struct {
 	ClientRequestID string            `json:"client_request_id" binding:"required"`
-	SceneKey        string            `json:"scene_key" binding:"required"`
-	TemplateKey     string            `json:"template_key" binding:"required"`
+	SceneKey        string            `json:"scene_key"`
+	TemplateKey     string            `json:"template_key"`
 	Fields          map[string]string `json:"fields"`
+	Prompt          string            `json:"prompt"`
 	SourceAssetID   *int64            `json:"source_asset_id,omitempty"`
 }
 
@@ -46,6 +47,7 @@ func CreateGenerationHandler(svc *generation.Service) gin.HandlerFunc {
 			SceneKey:        req.SceneKey,
 			TemplateKey:     req.TemplateKey,
 			Fields:          req.Fields,
+			Prompt:          req.Prompt,
 			SourceAssetID:   req.SourceAssetID,
 		})
 		if err != nil {

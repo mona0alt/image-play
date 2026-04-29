@@ -162,9 +162,10 @@ export function getSceneTemplates(sceneKey: string) {
 
 export function createGeneration(payload: {
   client_request_id: string
-  scene_key: string
-  template_key: string
-  fields: Record<string, string>
+  scene_key?: string
+  template_key?: string
+  fields?: Record<string, string>
+  prompt?: string
 }) {
   return request<{ generation_id: number }>({
     url: '/api/generations',

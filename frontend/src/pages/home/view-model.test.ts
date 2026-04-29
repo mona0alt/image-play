@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { buildHomeViewModel } from './view-model'
 
 describe('home view model', () => {
-  it('builds entry cards, recent works and credit summary', () => {
+  it('builds entry cards and recent works', () => {
     const vm = buildHomeViewModel({
       sceneOrder: ['portrait', 'festival', 'invitation'],
       historyItems: [
@@ -23,7 +23,6 @@ describe('home view model', () => {
           createdAt: '1714089600',
         },
       ],
-      profile: { balance: 5, free_quota: 2 },
     })
 
     expect(vm.entryCards.map((card) => card.key)).toEqual([
@@ -34,7 +33,5 @@ describe('home view model', () => {
     ])
     expect(vm.entryCards[1]?.path).toBe('/pages/face-reading/index')
     expect(vm.recentWorks.map((item) => item.id)).toEqual([1])
-    expect(vm.creditTitle).toBe('剩余额度')
-    expect(vm.creditValue).toBe('2')
   })
 })

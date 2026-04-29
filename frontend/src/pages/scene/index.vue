@@ -1,123 +1,105 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { onLoad } from '@dcloudio/uni-app'
-import EmptyStateCard from '../../components/common/EmptyStateCard.vue'
-import SceneFieldForm from '../../components/form/SceneFieldForm.vue'
+import { computed, onMounted, ref, watchEffect } from 'vue'
 import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
-import TemplatePicker from '../../components/scene/TemplatePicker.vue'
-import { getClientConfig } from '../../services/api'
-import { useConfigStore } from '../../store/config'
+import { getHistory, mapHistoryItem } from '../../services/api'
 import { useGenerationStore } from '../../store/generation'
-import { buildScenePageModel, getSceneSubmitError, resolveSceneKey } from './view-model'
+import { buildSubmitLabel } from './view-model'
 
-const configStore = useConfigStore()
 const generationStore = useGenerationStore()
-const requestedSceneKey = ref('')
-const pageLoading = ref(true)
-const pageError = ref('')
+const historyItems = ref<ReturnType<typeof mapHistoryItem>[]>([])
+const currentGenerationId = ref<number | null>(null)
 
-const currentSceneKey = computed(() =>
-  resolveSceneKey(configStore.clientConfig?.scene_order ?? [], requestedSceneKey.value),
-)
+const submitLabel = computed(() => buildSubmitLabel(generationStore.isSubmitting))
 
-const model = computed(() => buildScenePageModel({
-  sceneOrder: configStore.clientConfig?.scene_order ?? [],
-  currentSceneKey: currentSceneKey.value,
-  templates: generationStore.templates,
-  selectedTemplateKey: generationStore.selectedTemplate?.key ?? '',
-  isSubmitting: generationStore.isSubmitting,
-}))
-
-onLoad((query: any) => {
-  requestedSceneKey.value = query.scene_key || ''
+const currentItem = computed(() => {
+  if (!currentGenerationId.value) return null
+  return historyItems.value.find((item) => item.id === currentGenerationId.value)
 })
 
-async function loadScene() {
-  pageLoading.value = true
-  pageError.value = ''
-  try {
-    if (!configStore.clientConfig) {
-      configStore.setClientConfig(await getClientConfig())
-    }
-    await generationStore.loadTemplates(currentSceneKey.value)
-  } catch (err) {
-    pageError.value = '创作页加载失败，请重试'
-  } finally {
-    pageLoading.value = false
-  }
-}
-
-async function switchScene(sceneKey: string) {
-  requestedSceneKey.value = sceneKey
-  await generationStore.loadTemplates(sceneKey)
-}
+const resultState = computed(() => {
+  if (!currentItem.value) return 'idle'
+  if (currentItem.value.status === 'success') return 'success'
+  if (currentItem.value.status === 'failed') return 'failed'
+  return 'pending'
+})
 
 async function handleSubmit() {
-  const error = getSceneSubmitError(generationStore.selectedTemplate, generationStore.formValues)
-  if (error) {
-    uni.showToast({ title: error, icon: 'none' })
-    return
-  }
   try {
-    const generationId = await generationStore.submitGeneration()
-    uni.navigateTo({ url: `/pages/result/index?generation_id=${generationId}` })
+    const id = await generationStore.submitGeneration()
+    currentGenerationId.value = id
+    await refreshHistory()
   } catch (e: any) {
     uni.showToast({ title: e.message || '提交失败', icon: 'none' })
   }
 }
 
-onMounted(loadScene)
+async function refreshHistory() {
+  try {
+    const res = await getHistory()
+    historyItems.value = (res.items || []).map(mapHistoryItem)
+  } catch (e) {
+    // ignore
+  }
+}
+
+watchEffect((cleanup) => {
+  if (resultState.value === 'pending') {
+    const timer = setTimeout(() => {
+      void refreshHistory()
+    }, 1500)
+    cleanup(() => clearTimeout(timer))
+  }
+})
+
+onMounted(refreshHistory)
 </script>
 
 <template>
-  <GalleryPageShell
-    active-tab="create"
-    :title="model.currentScene.name"
-    :subtitle="model.currentScene.eyebrow"
-  >
-    <EmptyStateCard
-      v-if="pageError"
-      title="创作页暂时不可用"
-      :description="pageError"
-      action-label="重新加载"
-      @action="loadScene"
-    />
-
-    <view v-else-if="!pageLoading" class="scene-page">
-      <scroll-view scroll-x class="scene-page__scene-strip">
-        <view
-          v-for="scene in model.sceneChoices"
-          :key="scene.key"
-          class="scene-page__scene-pill"
-          :class="{ 'scene-page__scene-pill--active': scene.key === currentSceneKey }"
-          @click="switchScene(scene.key)"
-        >
-          <text>{{ scene.name }}</text>
-        </view>
-      </scroll-view>
-
-      <view class="scene-page__hero">
-        <text class="scene-page__hero-title">{{ model.currentScene.name }}</text>
-        <text class="scene-page__hero-desc">{{ model.currentScene.description }}</text>
+  <GalleryPageShell active-tab="create">
+    <view class="scene-page">
+      <view class="scene-page__header">
+        <text class="scene-page__title">创作</text>
+        <text class="scene-page__subtitle">开启您的 AI 视觉之旅</text>
       </view>
 
-      <TemplatePicker
-        :scene="model.currentScene"
-        :templates="generationStore.templates"
-        :selected-key="generationStore.selectedTemplate?.key ?? ''"
-        @select="generationStore.setTemplate"
-      />
+      <view class="scene-page__input-area">
+        <textarea
+          v-model="generationStore.prompt"
+          class="scene-page__textarea"
+          placeholder="描述您脑海中的画面..."
+          :disabled="generationStore.isSubmitting"
+        />
+        <view class="scene-page__input-actions">
+          <text class="scene-page__action-icon">&#10022;</text>
+          <text class="scene-page__action-icon">&#9673;</text>
+        </view>
+      </view>
 
-      <SceneFieldForm
-        v-if="generationStore.selectedTemplate"
-        :schema="generationStore.selectedTemplate.formSchema"
-        :model-value="generationStore.formValues"
-        @update:model-value="generationStore.setFormValues"
-      />
-
-      <button class="scene-page__submit" :disabled="generationStore.isSubmitting" @click="handleSubmit">
-        {{ model.submitLabel }}
+      <button
+        class="scene-page__submit"
+        :disabled="generationStore.isSubmitting || !generationStore.prompt.trim()"
+        @click="handleSubmit"
+      >
+        {{ submitLabel }}
       </button>
+
+      <text class="scene-page__hint">预计生成时间 30 秒 · 消耗 2 积分</text>
+
+      <view v-if="resultState === 'pending'" class="scene-page__result">
+        <text class="scene-page__status">作品正在生成中，请稍候...</text>
+      </view>
+
+      <view v-else-if="resultState === 'success' && currentItem" class="scene-page__result">
+        <image
+          class="scene-page__image"
+          :src="currentItem.resultUrl"
+          mode="widthFix"
+        />
+      </view>
+
+      <view v-else-if="resultState === 'failed'" class="scene-page__result">
+        <text class="scene-page__status">生成失败，请修改描述后重试</text>
+      </view>
     </view>
   </GalleryPageShell>
 </template>
@@ -126,54 +108,104 @@ onMounted(loadScene)
 .scene-page {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
-}
-
-.scene-page__scene-strip {
-  white-space: nowrap;
-}
-
-.scene-page__scene-pill {
-  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  margin-right: 12rpx;
-  padding: 14rpx 22rpx;
-  border-radius: 999rpx;
-  background: var(--gallery-surface);
-  color: var(--gallery-muted);
-  border: 1rpx solid var(--gallery-border);
+  padding-top: 48rpx;
 }
 
-.scene-page__scene-pill--active {
-  background: var(--gallery-accent);
-  color: #ffffff;
-}
-
-.scene-page__hero {
+.scene-page__header {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
-  padding: 28rpx;
-  border-radius: 28rpx;
-  background: var(--gallery-surface-soft);
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 48rpx;
 }
 
-.scene-page__hero-title {
-  font-size: 40rpx;
-  font-weight: 600;
+.scene-page__title {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: var(--gallery-text);
 }
 
-.scene-page__hero-desc {
-  font-size: 24rpx;
-  line-height: 1.6;
+.scene-page__subtitle {
+  font-size: 26rpx;
   color: var(--gallery-muted);
+}
+
+.scene-page__input-area {
+  position: relative;
+  width: 100%;
+  margin-bottom: 40rpx;
+}
+
+.scene-page__textarea {
+  width: 100%;
+  min-height: 360rpx;
+  padding: 32rpx;
+  padding-bottom: 72rpx;
+  background: #ffffff;
+  border-radius: 32rpx;
+  border: 1rpx solid rgba(28, 27, 27, 0.12);
+  font-size: 30rpx;
+  color: var(--gallery-text);
+  line-height: 1.6;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.04);
+}
+
+.scene-page__input-actions {
+  position: absolute;
+  right: 24rpx;
+  bottom: 24rpx;
+  display: flex;
+  gap: 20rpx;
+}
+
+.scene-page__action-icon {
+  font-size: 32rpx;
+  color: var(--gallery-muted);
+  opacity: 0.6;
 }
 
 .scene-page__submit {
+  width: 280rpx;
+  height: 88rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: var(--gallery-accent);
   color: #ffffff;
   border-radius: 999rpx;
-  margin-top: 8rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.12);
+}
+
+.scene-page__submit[disabled] {
+  opacity: 0.4;
+}
+
+.scene-page__hint {
+  margin-top: 32rpx;
+  font-size: 22rpx;
+  color: var(--gallery-muted);
+  opacity: 0.72;
+}
+
+.scene-page__result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  margin-top: 40rpx;
+}
+
+.scene-page__status {
+  font-size: 28rpx;
+  color: var(--gallery-muted);
+}
+
+.scene-page__image {
+  width: 100%;
+  border-radius: 32rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.08);
 }
 </style>

@@ -13,3 +13,15 @@ oss_access_key_secret: "YOUR_ACCESS_KEY_SECRET"
 dmx_api_key: ""
 dmx_api_base_url: "https://api.moonshot.cn/v1"
 dmx_model: "kimi-k2.6"
+
+llm:
+  text:
+    api_key: "sk-2mRuFylp26J7PNkyI3He9MWHqI4maxbudu5lJzntZEQOhvQ3"
+    base_url: "https://api.moonshot.cn/v1"
+    model: "kimi-k2.6"
+    timeout: 300s
+  image:
+    api_key: ""
+    base_url: ""
+    model: ""
+    timeout: 60s

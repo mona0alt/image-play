@@ -1,14 +1,13 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
+	"image-play/internal/infrastructure/llm"
 )
 
 const faceReadingPrompt = `你是一位精通面相学与命理学的资深相师。请基于中国传统面相学、周易命理学及现代心理学的交叉视角，对图片中人物进行深度解析。分析维度必须包括以下方面：
@@ -28,37 +27,7 @@ type FaceReadingRequest struct {
 	ImageBase64 string `json:"image_base64" binding:"required"`
 }
 
-type FaceReadingResponse struct {
-	Result string `json:"result"`
-}
-
-type dmxMessage struct {
-	Role    string       `json:"role"`
-	Content []dmxContent `json:"content"`
-}
-
-type dmxContent struct {
-	Type     string            `json:"type"`
-	Text     string            `json:"text,omitempty"`
-	ImageURL map[string]string `json:"image_url,omitempty"`
-}
-
-type dmxRequest struct {
-	Model    string       `json:"model"`
-	Messages []dmxMessage `json:"messages"`
-}
-
-type dmxResponse struct {
-	Choices []struct {
-		Message struct {
-			Content string `json:"content"`
-		} `json:"message"`
-	} `json:"choices"`
-}
-
-func FaceReadingHandler(apiKey, baseURL, model string) gin.HandlerFunc {
-	client := &http.Client{Timeout: 60 * time.Second}
-
+func FaceReadingHandler(textClient llm.TextClient) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var req FaceReadingRequest
 		if err := c.ShouldBindJSON(&req); err != nil {
@@ -72,58 +41,45 @@ func FaceReadingHandler(apiKey, baseURL, model string) gin.HandlerFunc {
 			return
 		}
 
-		dmxReq := dmxRequest{
-			Model: model,
-			Messages: []dmxMessage{
-				{
-					Role: "user",
-					Content: []dmxContent{
-						{Type: "text", Text: faceReadingPrompt},
-						{Type: "image_url", ImageURL: map[string]string{"url": req.ImageBase64}},
-					},
+		messages := []llm.Message{
+			{
+				Role: "user",
+				Parts: []llm.Part{
+					{Type: llm.PartTypeText, Content: faceReadingPrompt},
+					{Type: llm.PartTypeImage, Content: req.ImageBase64},
 				},
 			},
 		}
 
-		bodyBytes, err := json.Marshal(dmxReq)
+		reader, err := textClient.ChatStream(c.Request.Context(), messages)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to build request"})
+			fmt.Printf("[face-reading] chat stream error: %v\n", err)
+			c.JSON(http.StatusBadGateway, gin.H{"error": "model unavailable"})
 			return
 		}
+		defer reader.Close()
 
-		httpReq, err := http.NewRequestWithContext(c.Request.Context(), "POST", baseURL+"/chat/completions", bytes.NewReader(bodyBytes))
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to build request"})
-			return
+		c.Header("Content-Type", "text/event-stream")
+		c.Header("Cache-Control", "no-cache")
+		c.Header("Connection", "keep-alive")
+		c.Writer.WriteHeader(http.StatusOK)
+
+		for {
+			chunk, err := reader.Recv()
+			if err == io.EOF {
+				c.Writer.WriteString("data: [DONE]\n\n")
+				c.Writer.Flush()
+				break
+			}
+			if err != nil {
+				fmt.Printf("[face-reading] recv error: %v\n", err)
+				break
+			}
+			if chunk.Content != "" {
+				out, _ := json.Marshal(map[string]string{"chunk": chunk.Content})
+				c.Writer.WriteString("data: " + string(out) + "\n\n")
+				c.Writer.Flush()
+			}
 		}
-		httpReq.Header.Set("Content-Type", "application/json")
-		httpReq.Header.Set("Authorization", "Bearer "+apiKey)
-
-		resp, err := client.Do(httpReq)
-		if err != nil {
-			c.JSON(http.StatusBadGateway, gin.H{"error": "dmx api unreachable"})
-			return
-		}
-		defer resp.Body.Close()
-
-		if resp.StatusCode != http.StatusOK {
-			body, _ := io.ReadAll(resp.Body)
-			fmt.Fprintf(gin.DefaultWriter, "DMXAPI error: status=%d body=%s\n", resp.StatusCode, string(body))
-			c.JSON(http.StatusBadGateway, gin.H{"error": "dmx api error"})
-			return
-		}
-
-		var dmxResp dmxResponse
-		if err := json.NewDecoder(resp.Body).Decode(&dmxResp); err != nil {
-			c.JSON(http.StatusBadGateway, gin.H{"error": "invalid dmx response"})
-			return
-		}
-
-		if len(dmxResp.Choices) == 0 {
-			c.JSON(http.StatusBadGateway, gin.H{"error": "empty dmx response"})
-			return
-		}
-
-		c.JSON(http.StatusOK, FaceReadingResponse{Result: dmxResp.Choices[0].Message.Content})
 	}
 }

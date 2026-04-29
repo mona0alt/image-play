@@ -251,3 +251,192 @@ export function faceReading(imageBase64: string) {
     headers: { 'Content-Type': 'application/json' },
   })
 }
+
+class SSEParser {
+  private buffer = ''
+
+  parse(chunk: ArrayBuffer | string): string[] {
+    let text: string
+    if (typeof chunk === 'string') {
+      text = chunk
+    } else {
+      // 微信小程序不支持 TextDecoder，使用兼容方式解码 UTF-8
+      const uint8Array = new Uint8Array(chunk)
+      const raw = String.fromCharCode.apply(null, uint8Array as any)
+      text = decodeURIComponent(escape(raw))
+    }
+    this.buffer += text
+
+    const messages: string[] = []
+
+    while (true) {
+      const index = this.buffer.indexOf('\n\n')
+      if (index === -1) break
+
+      const message = this.buffer.substring(0, index)
+      this.buffer = this.buffer.substring(index + 2)
+
+      const lines = message.split('\n')
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.substring(6)
+          if (data === '[DONE]') continue
+          try {
+            const parsed = JSON.parse(data)
+            if (parsed.chunk) {
+              messages.push(parsed.chunk)
+            }
+          } catch {
+            // ignore malformed JSON
+          }
+        }
+      }
+    }
+
+    return messages
+  }
+}
+
+export async function faceReadingStream(
+  imageBase64: string,
+  onChunk: (chunk: string) => void,
+): Promise<void> {
+  console.log('[face-reading] ========== faceReadingStream called ==========')
+
+  console.log('[face-reading] calling ensureSession...')
+  const token = await ensureSession()
+  console.log('[face-reading] token got:', token ? 'yes' : 'no')
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  console.log('[face-reading] headers:', JSON.stringify(headers))
+
+  const parser = new SSEParser()
+
+  return new Promise((resolve, reject) => {
+    // @ts-ignore 微信小程序原生全局对象
+    const hasWx = typeof wx !== 'undefined' && wx.request
+    // @ts-ignore
+    const requestFn = hasWx ? wx.request : (uni.request as any)
+    console.log('[face-reading] requestFn:', hasWx ? 'wx.request' : 'uni.request')
+
+    let requestTask: any
+    let aborted = false
+
+    console.log('[face-reading] about to call requestFn...')
+    try {
+      requestTask = requestFn({
+        url: `${API_BASE}/api/face-reading`,
+        method: 'POST',
+        data: { image_base64: imageBase64 },
+        header: headers,
+        enableChunked: true,
+        responseType: 'arraybuffer',
+        success: (res: any) => {
+          console.log('[face-reading] >>> success callback, statusCode:', res.statusCode, 'dataType:', typeof res.data)
+          if (aborted) {
+            console.log('[face-reading] success ignored because aborted')
+            return
+          }
+          if (res.statusCode === 401) {
+            uni.removeStorageSync('access_token')
+            uni.reLaunch({ url: '/pages/login/index' })
+            reject(new Error('Unauthorized'))
+            return
+          }
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            console.log('[face-reading] resolving promise')
+            resolve()
+          } else {
+            console.log('[face-reading] rejecting with HTTP', res.statusCode)
+            reject(new Error(`HTTP ${res.statusCode}`))
+          }
+        },
+        fail: (err: any) => {
+          console.log('[face-reading] >>> fail callback:', JSON.stringify(err))
+          if (aborted) {
+            console.log('[face-reading] fail ignored because aborted')
+            return
+          }
+          reject(new Error(err.errMsg || 'Request failed'))
+        },
+      })
+      console.log('[face-reading] requestTask returned, type:', typeof requestTask)
+      if (requestTask && typeof requestTask === 'object') {
+        console.log('[face-reading] requestTask keys:', Object.keys(requestTask).join(','))
+      }
+    } catch (e: any) {
+      console.log('[face-reading] >>> request exception:', e.message || e)
+      reject(e)
+      return
+    }
+
+    console.log('[face-reading] checking onChunkReceived...')
+    console.log('[face-reading] requestTask?.onChunkReceived:', typeof requestTask?.onChunkReceived)
+
+    if (!requestTask || typeof requestTask.onChunkReceived !== 'function') {
+      console.log('[face-reading] onChunkReceived not available, fallback to normal request with 60s timeout')
+      aborted = true
+      try {
+        if (requestTask && typeof requestTask.abort === 'function') {
+          requestTask.abort()
+        }
+      } catch (e: any) {
+        console.log('[face-reading] abort error:', e.message || e)
+      }
+
+      requestFn({
+        url: `${API_BASE}/api/face-reading`,
+        method: 'POST',
+        data: { image_base64: imageBase64 },
+        header: headers,
+        timeout: 60000,
+        success: (res: any) => {
+          console.log('[face-reading] fallback success, status:', res.statusCode)
+          if (res.statusCode === 401) {
+            uni.removeStorageSync('access_token')
+            uni.reLaunch({ url: '/pages/login/index' })
+            reject(new Error('Unauthorized'))
+            return
+          }
+          if (res.statusCode >= 200 && res.statusCode < 300) {
+            const text = typeof res.data === 'string' ? res.data : ''
+            console.log('[face-reading] fallback response text length:', text.length)
+            const chunks = parser.parse(text)
+            console.log('[face-reading] fallback parsed chunks:', chunks.length)
+            for (const chunk of chunks) {
+              onChunk(chunk)
+            }
+            resolve()
+          } else {
+            reject(new Error(`HTTP ${res.statusCode}`))
+          }
+        },
+        fail: (err: any) => {
+          console.log('[face-reading] fallback fail:', JSON.stringify(err))
+          reject(new Error(err.errMsg || 'Request failed'))
+        },
+      })
+      return
+    }
+
+    console.log('[face-reading] registering onChunkReceived...')
+    requestTask.onChunkReceived((res: any) => {
+      try {
+        console.log('[face-reading] >>> onChunkReceived, data type:', typeof res.data, 'is ArrayBuffer:', res.data instanceof ArrayBuffer)
+        const chunks = parser.parse(res.data)
+        console.log('[face-reading] parsed chunks count:', chunks.length, 'first chunk:', chunks[0]?.substring(0, 20))
+        for (const chunk of chunks) {
+          onChunk(chunk)
+        }
+      } catch (e: any) {
+        console.error('[face-reading] SSE parse error:', e.message || e)
+      }
+    })
+    console.log('[face-reading] onChunkRegistered registered')
+  })
+}

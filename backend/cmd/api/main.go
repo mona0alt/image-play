@@ -8,6 +8,7 @@ import (
 	_ "github.com/lib/pq"
 	"image-play/internal/config"
 	http "image-play/internal/http"
+	"image-play/internal/infrastructure/llm"
 	"image-play/internal/infrastructure/storage"
 	"image-play/internal/infrastructure/wechat"
 	"image-play/internal/migration"
@@ -44,7 +45,18 @@ func main() {
 	}
 
 	wxClient := wechat.NewClient(cfg.WechatAppID, cfg.WechatAppSecret)
-	r := http.NewRouter(db, cfg, wxClient, signer)
+
+	textClient, err := llm.NewTextClient(llm.TextConfig{
+		APIKey:  cfg.LLM.Text.APIKey,
+		BaseURL: cfg.LLM.Text.BaseURL,
+		Model:   cfg.LLM.Text.Model,
+		Timeout: cfg.LLM.Text.Timeout,
+	})
+	if err != nil {
+		log.Fatalf("text client init failed: %v", err)
+	}
+
+	r := http.NewRouter(db, cfg, wxClient, signer, textClient)
 	if err := r.Run(":" + cfg.Port); err != nil {
 		log.Fatalf("server failed to start: %v", err)
 	}

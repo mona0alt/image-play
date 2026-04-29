@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -21,6 +22,26 @@ type Config struct {
 	DMXAPIKey          string `yaml:"dmx_api_key"`
 	DMXAPIBaseURL      string `yaml:"dmx_api_base_url"`
 	DMXModel           string `yaml:"dmx_model"`
+	LLM                LLMConfig `yaml:"llm"`
+}
+
+type LLMConfig struct {
+	Text  TextConfig  `yaml:"text"`
+	Image ImageConfig `yaml:"image"`
+}
+
+type TextConfig struct {
+	APIKey  string        `yaml:"api_key"`
+	BaseURL string        `yaml:"base_url"`
+	Model   string        `yaml:"model"`
+	Timeout time.Duration `yaml:"timeout"`
+}
+
+type ImageConfig struct {
+	APIKey  string        `yaml:"api_key"`
+	BaseURL string        `yaml:"base_url"`
+	Model   string        `yaml:"model"`
+	Timeout time.Duration `yaml:"timeout"`
 }
 
 func Load() *Config {
@@ -81,6 +102,41 @@ func Load() *Config {
 	if v := os.Getenv("DMX_MODEL"); v != "" {
 		cfg.DMXModel = v
 	}
+	if v := os.Getenv("LLM_TEXT_API_KEY"); v != "" {
+		cfg.LLM.Text.APIKey = v
+	}
+	if v := os.Getenv("LLM_TEXT_BASE_URL"); v != "" {
+		cfg.LLM.Text.BaseURL = v
+	}
+	if v := os.Getenv("LLM_TEXT_MODEL"); v != "" {
+		cfg.LLM.Text.Model = v
+	}
+	if v := os.Getenv("LLM_IMAGE_API_KEY"); v != "" {
+		cfg.LLM.Image.APIKey = v
+	}
+	if v := os.Getenv("LLM_IMAGE_BASE_URL"); v != "" {
+		cfg.LLM.Image.BaseURL = v
+	}
+	if v := os.Getenv("LLM_IMAGE_MODEL"); v != "" {
+		cfg.LLM.Image.Model = v
+	}
+
+	// Backward compatibility: if llm.text is empty, fall back to dmx_* fields
+	if cfg.LLM.Text.APIKey == "" {
+		cfg.LLM.Text.APIKey = cfg.DMXAPIKey
+	}
+	if cfg.LLM.Text.BaseURL == "" {
+		cfg.LLM.Text.BaseURL = cfg.DMXAPIBaseURL
+	}
+	if cfg.LLM.Text.Model == "" {
+		cfg.LLM.Text.Model = cfg.DMXModel
+	}
+	if cfg.LLM.Text.Timeout == 0 {
+		cfg.LLM.Text.Timeout = 300 * time.Second
+	}
+	if cfg.LLM.Image.Timeout == 0 {
+		cfg.LLM.Image.Timeout = 60 * time.Second
+	}
 
 	return &cfg
 }
@@ -100,6 +156,18 @@ func loadFromEnv() *Config {
 		DMXAPIKey:          getEnv("DMX_API_KEY", ""),
 		DMXAPIBaseURL:      getEnv("DMX_API_BASE_URL", "https://api.moonshot.cn/v1"),
 		DMXModel:           getEnv("DMX_MODEL", "kimi-k2.6"),
+		LLM: LLMConfig{
+			Text: TextConfig{
+				APIKey:  getEnv("LLM_TEXT_API_KEY", ""),
+				BaseURL: getEnv("LLM_TEXT_BASE_URL", ""),
+				Model:   getEnv("LLM_TEXT_MODEL", ""),
+			},
+			Image: ImageConfig{
+				APIKey:  getEnv("LLM_IMAGE_API_KEY", ""),
+				BaseURL: getEnv("LLM_IMAGE_BASE_URL", ""),
+				Model:   getEnv("LLM_IMAGE_MODEL", ""),
+			},
+		},
 	}
 }
 

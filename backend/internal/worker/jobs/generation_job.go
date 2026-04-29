@@ -9,26 +9,11 @@ import (
 	"image-play/internal/domain/billing"
 	"image-play/internal/domain/generation"
 	"image-play/internal/domain/scenes"
+	"image-play/internal/infrastructure/llm"
 )
-
-type ModelClient interface {
-	Generate(ctx context.Context, prompt string) (imageURL string, err error)
-}
 
 type AuditClient interface {
 	Audit(ctx context.Context, imageURL string) (pass bool, err error)
-}
-
-type MockModelClient struct{}
-
-func (m *MockModelClient) Generate(ctx context.Context, prompt string) (string, error) {
-	// Simulate model generation latency
-	select {
-	case <-time.After(100 * time.Millisecond):
-		return fmt.Sprintf("https://mock-cdn.example.com/result/%d.png", time.Now().Unix()), nil
-	case <-ctx.Done():
-		return "", ctx.Err()
-	}
 }
 
 type MockAuditClient struct{}
@@ -44,26 +29,25 @@ func (m *MockAuditClient) Audit(ctx context.Context, imageURL string) (bool, err
 }
 
 type GenerationJob struct {
-	modelClient    ModelClient
+	imageClient    llm.ImageClient
 	auditClient    AuditClient
 	generationRepo generation.Repository
 	templateRepo   generation.TemplateLookup
 	billingSvc     *billing.Service
 }
 
-func NewGenerationJob(repo generation.Repository, templateRepo generation.TemplateLookup, model ModelClient, audit AuditClient, billingSvc *billing.Service) *GenerationJob {
+func NewGenerationJob(repo generation.Repository, templateRepo generation.TemplateLookup, imageClient llm.ImageClient, audit AuditClient, billingSvc *billing.Service) *GenerationJob {
 	if templateRepo == nil {
 		panic("template lookup is required")
 	}
-
-	if model == nil {
-		model = &MockModelClient{}
+	if imageClient == nil {
+		panic("image client is required")
 	}
 	if audit == nil {
 		audit = &MockAuditClient{}
 	}
 	return &GenerationJob{
-		modelClient:    model,
+		imageClient:    imageClient,
 		auditClient:    audit,
 		generationRepo: repo,
 		templateRepo:   templateRepo,
@@ -80,7 +64,7 @@ func (j *GenerationJob) Execute(ctx context.Context, g *generation.Generation) e
 		return err
 	}
 
-	imageURL, err := j.modelClient.Generate(ctx, prompt)
+	imageURL, err := j.imageClient.Generate(ctx, prompt)
 	if err != nil {
 		_ = j.generationRepo.UpdateResult(ctx, g.ID, "failed", "")
 		return fmt.Errorf("model generation failed: %w", err)

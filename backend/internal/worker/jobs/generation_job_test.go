@@ -127,7 +127,13 @@ func TestExecuteBuildsPromptFromTemplatePreset(t *testing.T) {
 
 func TestNewGenerationJobRequiresTemplateLookup(t *testing.T) {
 	require.PanicsWithValue(t, "template lookup is required", func() {
-		NewGenerationJob(&stubGenerationRepo{}, nil, nil, nil, nil)
+		NewGenerationJob(&stubGenerationRepo{}, nil, &captureModelClient{}, nil, nil)
+	})
+}
+
+func TestNewGenerationJobRequiresImageClient(t *testing.T) {
+	require.PanicsWithValue(t, "image client is required", func() {
+		NewGenerationJob(&stubGenerationRepo{}, &stubTemplateLoader{}, nil, nil, nil)
 	})
 }
 

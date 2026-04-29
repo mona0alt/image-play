@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -72,6 +74,9 @@ func FaceReadingHandler(textClient llm.TextClient) gin.HandlerFunc {
 				break
 			}
 			if err != nil {
+				if errors.Is(err, context.Canceled) {
+					break
+				}
 				fmt.Printf("[face-reading] recv error: %v\n", err)
 				break
 			}

@@ -22,6 +22,21 @@ AI 图片场景生成小程序。uni-app 微信小程序前端 + Go 后端。
 - **模块位置**: `backend/internal/infrastructure/llm/`
 - **接口设计**: 项目自定义 `TextClient` / `ImageClient` 接口，完全封装 eino 细节，调用方零依赖。
 
+### 前端 SSE 流式接收（微信小程序）
+
+面相分析等长文本生成场景使用 SSE（Server-Sent Events）流式输出，避免用户长时间空白等待。微信小程序不支持浏览器标准的 `EventSource`，需使用原生 `wx.request` 的 chunked 传输能力实现。
+
+**实现要点：**
+
+- **必须使用 `wx.request` 而非 `uni.request`**：uni-app Vue3 中 `uni.request` 返回 Promise，无法获取 `RequestTask` 对象，因此无法注册 `onChunkReceived` 监听。直接使用微信小程序原生 `wx.request` 才能拿到 `RequestTask`。
+- **`enableChunked: true`**：开启 HTTP 分块传输，配合后端 `c.Writer.Flush()` 实现实时推送。
+- **`responseType: 'arraybuffer'`**：必须显式设置，否则 `onChunkReceived` 回调中的 `res.data` 类型不确定。
+- **UTF-8 解码兼容**：微信小程序不支持 `TextDecoder`，需使用 `Uint8Array` + `String.fromCharCode` + `decodeURIComponent(escape())` 解码 ArrayBuffer。
+- **SSE 协议解析**：`onChunkReceived` 返回的是原始 HTTP chunk，不是完整 SSE 消息。需维护 buffer，按 `\n\n` 分隔后提取 `data: ` 前缀的内容，再 JSON 解析。
+- **`uni.canIUse` 不可靠**：`uni.canIUse("request.enableChunked")` 在 Windows 版微信开发者工具模拟器上可能误报为 `false`，应以实际 `requestTask.onChunkReceived` 是否存在为准。
+- **Fallback 兜底**：若流式不可用，自动回退到普通 HTTP 请求，timeout 设为 60 秒（避免 LLM 生成超过 15 秒导致超时失败）。
+- **相关文件**：`frontend/src/services/api.ts`（`faceReadingStream` 函数 + `SSEParser` 类）、`backend/internal/http/handlers/face_reading_handler.go`（SSE 响应输出）。
+
 ## 前置依赖
 
 - Go 1.22+

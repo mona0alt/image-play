@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
-import { faceReading } from '../../services/api'
+import { faceReadingStream } from '../../services/api'
 
 const imageBase64 = ref('')
 const result = ref('')
@@ -55,10 +55,13 @@ async function submit() {
 
   loading.value = true
   error.value = ''
+  result.value = ''
   try {
-    const res = await faceReading(imageBase64.value)
-    result.value = res.result
+    await faceReadingStream(imageBase64.value, (chunk) => {
+      result.value += chunk
+    })
   } catch (e: any) {
+    console.error('[face-reading] submit error:', e.message || e)
     error.value = '分析服务暂时繁忙，请稍后重试'
   } finally {
     loading.value = false

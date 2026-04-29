@@ -32,3 +32,4 @@ backend/config.yaml
 Thumbs.db
 dist/
 .worktrees/
+.worktrees/

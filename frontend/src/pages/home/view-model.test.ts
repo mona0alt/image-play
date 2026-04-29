@@ -37,15 +37,4 @@ describe('home view model', () => {
     expect(vm.creditTitle).toBe('剩余额度')
     expect(vm.creditValue).toBe('2')
   })
-
-  it('keeps hero and gallery slices for current home page consumers', () => {
-    const vm = buildHomeViewModel({
-      sceneOrder: ['portrait', 'festival', 'invitation'],
-      historyItems: [],
-      profile: null,
-    })
-
-    expect(vm.heroScene.key).toBe('portrait')
-    expect(vm.galleryScenes.map((scene) => scene.key)).toEqual(['festival', 'invitation'])
-  })
 })

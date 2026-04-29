@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import EmptyStateCard from '../../components/common/EmptyStateCard.vue'
+import GalleryEntryStack from '../../components/home/GalleryEntryStack.vue'
 import GalleryPageShell from '../../components/layout/GalleryPageShell.vue'
-import SceneGalleryCard from '../../components/scene/SceneGalleryCard.vue'
-import SceneHeroCard from '../../components/scene/SceneHeroCard.vue'
 import { getClientConfig, getHistory, getMe, mapHistoryItem } from '../../services/api'
 import { useConfigStore } from '../../store/config'
 import { useUserStore } from '../../store/user'
+import type { HomeEntryCard } from './entry-cards'
 import { buildHomeViewModel } from './view-model'
 
 const configStore = useConfigStore()
@@ -15,11 +15,13 @@ const historyItems = ref<ReturnType<typeof mapHistoryItem>[]>([])
 const loading = ref(true)
 const error = ref('')
 
-const model = computed(() => buildHomeViewModel({
-  sceneOrder: configStore.clientConfig?.scene_order ?? [],
-  historyItems: historyItems.value,
-  profile: userStore.profile,
-}))
+const model = computed(() =>
+  buildHomeViewModel({
+    sceneOrder: configStore.clientConfig?.scene_order ?? [],
+    historyItems: historyItems.value,
+    profile: userStore.profile,
+  }),
+)
 
 async function loadPage() {
   loading.value = true
@@ -45,8 +47,13 @@ async function loadPage() {
   }
 }
 
-function openCreate(sceneKey: string) {
-  uni.reLaunch({ url: `/pages/scene/index?scene_key=${sceneKey}` })
+function openEntry(entry: HomeEntryCard) {
+  if (entry.kind === 'tool') {
+    uni.navigateTo({ url: entry.path })
+    return
+  }
+
+  uni.reLaunch({ url: entry.path })
 }
 
 function openResult(id: number) {
@@ -55,10 +62,6 @@ function openResult(id: number) {
 
 function openProfile() {
   uni.reLaunch({ url: '/pages/profile/index' })
-}
-
-function openFaceReading() {
-  uni.navigateTo({ url: '/pages/face-reading/index' })
 }
 
 onMounted(loadPage)
@@ -75,29 +78,9 @@ onMounted(loadPage)
     />
 
     <view v-else-if="!loading" class="home-page">
-      <SceneHeroCard :scene="model.heroScene" @tap="openCreate" />
-
-      <view class="home-page__section">
-        <text class="home-page__eyebrow">AI Tools</text>
-        <view class="home-page__tool-card" @click="openFaceReading">
-          <view class="home-page__tool-info">
-            <text class="home-page__tool-title">面相分析</text>
-            <text class="home-page__tool-desc">上传照片，AI 解析面相运势</text>
-          </view>
-          <text class="home-page__tool-arrow">›</text>
-        </view>
-      </view>
-
       <view class="home-page__section">
         <text class="home-page__eyebrow">Curated Collection</text>
-        <view class="home-page__gallery">
-          <SceneGalleryCard
-            v-for="scene in model.galleryScenes"
-            :key="scene.key"
-            :scene="scene"
-            @tap="openCreate"
-          />
-        </view>
+        <GalleryEntryStack :entries="model.entryCards" @open="openEntry" />
       </view>
 
       <view v-if="model.recentWorks.length > 0" class="home-page__section">
@@ -107,14 +90,14 @@ onMounted(loadPage)
             v-for="item in model.recentWorks"
             :key="item.id"
             class="home-page__recent-item"
-            @click="openResult(item.id)"
+            @tap="openResult(item.id)"
           >
             <image class="home-page__recent-image" :src="item.resultUrl" mode="aspectFill" />
           </view>
         </scroll-view>
       </view>
 
-      <view class="home-page__credit-card" @click="openProfile">
+      <view class="home-page__credit-card" @tap="openProfile">
         <text class="home-page__eyebrow">{{ model.creditTitle }}</text>
         <text class="home-page__credit-value">{{ model.creditValue }}</text>
         <text class="home-page__credit-meta">余额 {{ model.balanceValue }}</text>
@@ -141,12 +124,6 @@ onMounted(loadPage)
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: var(--gallery-muted);
-}
-
-.home-page__gallery {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20rpx;
 }
 
 .home-page__recent-list {
@@ -185,37 +162,6 @@ onMounted(loadPage)
 
 .home-page__credit-meta {
   font-size: 24rpx;
-  color: var(--gallery-muted);
-}
-
-.home-page__tool-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 28rpx;
-  border-radius: 28rpx;
-  background: var(--gallery-surface);
-  border: 1rpx solid var(--gallery-border);
-}
-
-.home-page__tool-info {
-  display: flex;
-  flex-direction: column;
-  gap: 8rpx;
-}
-
-.home-page__tool-title {
-  font-size: 32rpx;
-  font-weight: 600;
-}
-
-.home-page__tool-desc {
-  font-size: 24rpx;
-  color: var(--gallery-muted);
-}
-
-.home-page__tool-arrow {
-  font-size: 40rpx;
   color: var(--gallery-muted);
 }
 </style>

@@ -14,6 +14,14 @@ AI 图片场景生成小程序。uni-app 微信小程序前端 + Go 后端。
 - **前端**：Vue 3, uni-app, TypeScript
 - **构建**：Make, Go modules, npm
 
+### 大模型交互技术选型
+
+- **LLM 应用框架**: [CloudWeGo Eino](https://github.com/cloudwego/eino) — 构建大语言模型应用的 Go 框架，提供统一的组件抽象、流式处理、回调机制。
+- **文本模型组件**: `eino-ext/components/model/openai` — 兼容 OpenAI API 格式的 ChatModel 实现。Moonshot 等国内主流模型均兼容此格式。
+- **图片生成**: 原生 HTTP 封装 — eino 生态暂无标准文生图组件，直接封装更可控。
+- **模块位置**: `backend/internal/infrastructure/llm/`
+- **接口设计**: 项目自定义 `TextClient` / `ImageClient` 接口，完全封装 eino 细节，调用方零依赖。
+
 ## 前置依赖
 
 - Go 1.22+
